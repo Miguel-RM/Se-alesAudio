@@ -1,17 +1,23 @@
 #include<iostream>
 #include<stdlib.h>
-#include<vector>
+#include"estructuras.cpp"
+#include"Fourier.cpp"
+#include"tracks.cpp"
 
 using namespace::std;
+using namespace::audio;
+using namespace::Fourier;
+using namespace::Tracks;
 
 
 #ifndef WAVE_CPP
 #define WAVE_CPP
 
-typedef vector<short> track;
 
 class Wave
 {
+
+friend class Spectrum;
 private:
     /* data */
     unsigned char  groupID[5]; /* dede ser 'RIFF' */
@@ -28,26 +34,35 @@ private:
     unsigned char  dataID[5]; /* debe ser 'data' */
     unsigned int   signalSize; /* tamano de la senal en muestras */
     unsigned int   BytePorMu;
-    double average; // La energia promedio del audio
     track data; // el audio
+    double average; // La energia promedio del audio
     string nameWave; //path y nombre del audio
     void readWave();
 
 public:
+
     Wave(string Name);
     void printTrack();
+    void newTrack(Matrix &spectreR, Matrix &spectreI);
     void writeWave();
+    int getSamplesPerSec();
     ~Wave();
 };
+
+int Wave::getSamplesPerSec()
+{
+    return dwSamplesPerSec;
+}
 
 Wave::Wave(string Name)
 {
     int i;
     FILE *pFile;
+    nameWave = Name;
+    Name+=".wav";
     const char *punter=Name.c_str();
 
     pFile=fopen(punter,"r");
-    nameWave = Name;
 
     if (pFile==NULL) {
         fprintf(stderr,"No pude abrir el archivo %s\n",punter);
@@ -69,6 +84,7 @@ Wave::Wave(string Name)
     fread(&dataID , 4 , 1 , pFile); dataID[4]=0;
     fread(&signalSize , 4 , 1 , pFile);
     
+    /*
     printf("groupID=%s\n",groupID);
     printf("fileSize=%u\n",fileSize);
     printf("riffType=%s\n",riffType);
@@ -81,6 +97,7 @@ Wave::Wave(string Name)
     printf("wBitsPerSample=%u\n",wBitsPerSample);
     printf("dataID=%s\n",dataID);
     printf("chunkSize=%u\n",signalSize);
+    */
     
     BytePorMu=wBitsPerSample/8;
     fclose(pFile);
@@ -96,7 +113,8 @@ void Wave::readWave()
    FILE *pFile;
    long pos=0;
    short sampleLeft = 0,sampleRight = 0;
-   const char *punter=nameWave.c_str();
+   string name = nameWave + ".wav";
+   const char *punter=name.c_str();
 
     pFile=fopen(punter,"r");
    
@@ -132,8 +150,8 @@ void Wave::readWave()
    //cout<<"];"<<endl;
    average/=((signalSize-44)/BytePorMu);
 
-   printf("E %f \n\n",average);
-   cout<<"Tam: "<<data.size()<<endl;
+   //printf("E %f \n\n",average);
+   //cout<<"Tam: "<<data.size()<<endl;
 }
 
 void Wave::printTrack()
@@ -145,6 +163,65 @@ void Wave::printTrack()
     }
     cout<<" ];"<<endl;
     
+}
+
+void Wave::newTrack(Matrix &spectreR, Matrix &spectreI)
+{
+    data.clear();
+    int frameSize = spectreR[0].size();
+    trackDou salidaR, salidaI;
+
+    for (int i = 0; i < spectreR.size(); i++)
+    {
+        salidaR = salidaI = generaCeros(frameSize);
+        tRF1D(spectreR[i], spectreI[i], salidaR, salidaI, 1);
+        for (int j = 0; j < frameSize; j++)
+        {
+            data.push_back((short)round(salidaR[j]));
+        }
+    }
+    signalSize = data.size()*BytePorMu;
+}
+
+void Wave::writeWave()
+{
+
+    FILE *pFile;
+    nameWave+="2.wav";
+    char aux;
+    short auxi;
+    const char *punter=nameWave.c_str();
+
+    pFile=fopen(punter,"w");
+
+    if (pFile==NULL) {
+        fprintf(stderr,"No pude escribir el archivo %s\n",punter);
+        exit(0);
+    }
+
+    
+    fwrite(&groupID,4 , 1 , pFile);
+    fwrite(&fileSize , 4, 1 , pFile);
+    fwrite(&riffType, 4, 1, pFile);
+    fwrite(&chunkID , 4, 1 , pFile);
+    fwrite(&chunkSize , 4, 1 , pFile);
+    fwrite(&wFormatTag , 2, 1 , pFile);
+    fwrite(&wChannels , 2 , 1 , pFile);
+    fwrite(&dwSamplesPerSec , 4, 1 , pFile);
+    fwrite(&dwAvgBytesPerSec , 4 , 1, pFile);
+    fwrite(&wBlockAlign , 2 , 1, pFile);
+    fwrite(&wBitsPerSample , 2 , 1, pFile);
+    fwrite(&dataID , 4 , 1 , pFile);
+    fwrite(&signalSize , 4 , 1 , pFile);
+    cout << "length: "<<BytePorMu<<endl;
+
+    for (int i = 0; i < data.size(); i++)
+    {
+        auxi = data[i];
+        fwrite(&auxi,BytePorMu , 1 , pFile);
+    }
+    
+    fclose(pFile);
 }
 
 #endif
