@@ -9,7 +9,7 @@ using namespace::std;
 
 namespace Tracks
 {
-    void printTrack(trackDou t)
+    void printTrack(trackFloat t)
     {
         cout << "track =[ ";
         for (int i = 0; i < t.size(); i++)
@@ -19,9 +19,9 @@ namespace Tracks
         cout << " ];" << endl;
         
     }
-    trackDou generaCeros(int samples)
+    trackFloat generaCeros(int samples)
     {
-        trackDou reng;
+        trackFloat reng;
 
         for (int i = 0; i < samples; i++)
         {
@@ -31,9 +31,9 @@ namespace Tracks
         return reng;
     }
 
-    trackDou sumTrack(trackDou &A, trackDou &B)
+    trackFloat sumTrack(trackFloat &A, trackFloat &B)
     {
-        trackDou c;
+        trackFloat c;
 
         if(A.size() != B.size())
         {
@@ -46,9 +46,9 @@ namespace Tracks
         return c;
     }
 
-    trackDou substracTrack(trackDou &A, trackDou &B)
+    trackFloat substracTrack(trackFloat &A, trackFloat &B)
     {
-        trackDou c;
+        trackFloat c;
 
         if(A.size() != B.size())
         {
@@ -61,9 +61,9 @@ namespace Tracks
         return c;
     }
 
-    trackDou multTrack(trackDou &A, trackDou &B)
+    trackFloat multTrack(trackFloat &A, trackFloat &B)
     {
-        trackDou c;
+        trackFloat c;
 
         if(A.size() != B.size())
         {
@@ -76,24 +76,34 @@ namespace Tracks
         return c;
     }
 
-    void multTK(trackDou &T, trackDou &K, int desp)
+    void multTK(trackFloat &T, trackFloat &K, int desp)
     {
-        trackDou c;
-        int up = K.size()+desp;
+        
+        int threesigma = K.size()/2;
+        trackFloat aux = generaCeros(T.size());
 
-        if(T.size() < up)
+        int up = threesigma+desp;
+        int down = desp-threesigma;
+        int max = T.size()-1;
+        cout << "Framesize: "<< T.size()<<endl;
+
+        if(T.size()/2 < desp)
         {
             cout << "the desplacement are huge" << endl;
+            exit(0);
         }
-        for (int i = 0; i < T.size(); i++)
+
+        for (int j=0,i = desp-threesigma; i <= desp+threesigma; i++,j++)
         {
-            if(desp<=i && i< up){
-                T[i] *= K[i-desp];
-            }else{
-                T[i] = 0.0;
+            if(i>=0&&i<T.size()/2){
+                aux[i] = T[i]*K[j];
+                aux[max-i] = T[max-i]*K[j];
+               
             }
+            
         }
-        
+        T=aux;
+
     }
 }
 

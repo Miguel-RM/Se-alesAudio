@@ -8,7 +8,7 @@ using namespace::audio;
 
 namespace Fourier{
 
-void tRF1C(trackDou entradaR, trackDou entradaI, double &salidaR, double &salidaI, int signo, int K)
+void tRF1C(trackFloat entradaR, trackFloat entradaI, double &salidaR, double &salidaI, int signo, int K)
 {
     int tam = entradaR.size();
     int mitad = tam / 2;
@@ -38,7 +38,7 @@ void tRF1C(trackDou entradaR, trackDou entradaI, double &salidaR, double &salida
     salidaI = entradaI[0] * factor;
 }
 
-void tRF1D(trackDou &entradaR, trackDou &entradaI, trackDou &salidaR, trackDou &salidaI, int signo)
+void tRF1D(trackFloat &entradaR, trackFloat &entradaI, trackFloat &salidaR, trackFloat &salidaI, int signo)
 {
     int tam = entradaR.size();
 

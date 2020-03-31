@@ -4,7 +4,7 @@
 
 #ifndef SPECTRUM_CPP
 #define SPECTRUM_CPP
-#define Period 30e-3
+#define Period 20e-3
 
 using namespace::Fourier;
 using namespace::Tracks;
@@ -16,25 +16,26 @@ friend class Wave;
 private:
     /* data */
     int frameSize;
-    Matrix spectR;
-    Matrix spectI;
+    short bytepersample;
+    MatrixFloat spectR;
+    MatrixFloat spectI;
     
 public:
-    Spectrum(Wave &audio);
-    Matrix& getSpectR();
-    Matrix& getSpectI();
+    Spectrum(Wave &audio, int channel);
+    MatrixFloat& getSpectR();
+    MatrixFloat& getSpectI();
     void firstTrack(int i);
-    void divideTrack(int mode, track &data);
+    void divideTrack(int mode, track32 &data);
     Wave generateWave();
     ~Spectrum();
 };
 
-Matrix& Spectrum::getSpectR()
+MatrixFloat& Spectrum::getSpectR()
 {
     return spectR;
 }
 
-Matrix& Spectrum::getSpectI()
+MatrixFloat& Spectrum::getSpectI()
 {
     return spectI;
 }
@@ -45,18 +46,19 @@ void Spectrum::firstTrack(int i)
     printTrack(spectI[i]);
 }
 
-Spectrum::Spectrum(Wave &audio)
+Spectrum::Spectrum(Wave &audio, int channel)
 {
     int factor = 128;
+    bytepersample = audio.BytePorMu;
     frameSize = audio.getSamplesPerSec() * Period;
     while (frameSize > factor)
     {
         factor <<=1;
     }
     frameSize = factor; 
-    divideTrack(0, audio.data);
+    divideTrack(0, audio.data[channel]);
     cout << "Marcos: " << spectR.size();
-    cout << " muestras: " << audio.data.size();
+    cout << " muestras: " << audio.data[channel].size();
     cout << " framesize: "<< spectR[0].size() << endl;
     
 }
@@ -65,11 +67,11 @@ Spectrum::~Spectrum()
 {
 }
 
-void Spectrum::divideTrack(int mode, track &data)
+void Spectrum::divideTrack(int mode, track32 &data)
 {
     int splice;
     unsigned long int position, length;
-    trackDou real, imag, salidaR, salidaI;
+    trackFloat real, imag, salidaR, salidaI;
     if(0 == mode) splice = frameSize; else splice = 86;
 
     position = 0;
@@ -80,11 +82,14 @@ void Spectrum::divideTrack(int mode, track &data)
         imag = generaCeros(frameSize);
         salidaR = salidaI = imag;
         real.clear();
-        
+
         for (unsigned long int i = position; i < (position+frameSize); i++)
         {
             if(i<length)
-                real.push_back((double)data[i]);
+                if(2==bytepersample)
+                    real.push_back((double)(short)data[i]);
+                else
+                    real.push_back((double)data[i]);
             else 
                 real.push_back(0.0);
         }

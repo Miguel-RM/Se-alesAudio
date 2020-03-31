@@ -34,17 +34,18 @@ private:
     unsigned char  dataID[5]; /* debe ser 'data' */
     unsigned int   signalSize; /* tamano de la senal en muestras */
     unsigned int   BytePorMu;
-    track data; // el audio
-    double average; // La energia promedio del audio
+    Matrix32 data; // el audio
+    double averageL; // La energia promedio del audio
+    double averageR;
     string nameWave; //path y nombre del audio
     void readWave();
 
 public:
 
     Wave(string Name);
-    void printTrack();
-    void newTrack(Matrix &spectreR, Matrix &spectreI);
-    void writeWave();
+    void printTrack(int channel);
+    void newTrack(MatrixFloat &spectreR, MatrixFloat &spectreI, int channel);
+    void writeWave(string add);
     int getSamplesPerSec();
     ~Wave();
 };
@@ -84,7 +85,7 @@ Wave::Wave(string Name)
     fread(&dataID , 4 , 1 , pFile); dataID[4]=0;
     fread(&signalSize , 4 , 1 , pFile);
     
-    /*
+    
     printf("groupID=%s\n",groupID);
     printf("fileSize=%u\n",fileSize);
     printf("riffType=%s\n",riffType);
@@ -97,7 +98,7 @@ Wave::Wave(string Name)
     printf("wBitsPerSample=%u\n",wBitsPerSample);
     printf("dataID=%s\n",dataID);
     printf("chunkSize=%u\n",signalSize);
-    */
+    
     
     BytePorMu=wBitsPerSample/8;
     fclose(pFile);
@@ -112,7 +113,8 @@ void Wave::readWave()
 {
    FILE *pFile;
    long pos=0;
-   short sampleLeft = 0,sampleRight = 0;
+   int sampleLeft = 0,sampleRight = 0;
+   track32 trackauxL,trackauxR;
    string name = nameWave + ".wav";
    const char *punter=name.c_str();
 
@@ -129,47 +131,54 @@ void Wave::readWave()
     {
         while(pos<signalSize){  //reviso el fin de archivo
             fread(&sampleLeft,BytePorMu,1,pFile);
-            data.push_back(sampleLeft);
+            trackauxL.push_back(sampleLeft);
             //cout<<sampleLeft<<";"<<endl;
-            average+=sampleLeft*sampleLeft;
+            averageL+=sampleLeft*sampleLeft;
             pos+=BytePorMu;
         }
+        data.push_back(trackauxL);
     }else if(2 == wChannels)
     {
         while(pos<signalSize){  //reviso el fin de archivo
             fread(&sampleLeft,BytePorMu,1,pFile);
             fread(&sampleRight,BytePorMu,1,pFile);
-            sampleLeft += sampleRight;
-            sampleLeft /= 2;
-            data.push_back(sampleLeft);
+            
+            trackauxL.push_back(sampleLeft);
+            trackauxR.push_back(sampleRight);
             //cout<<sampleLeft<<";"<<endl;
-            average+=sampleLeft*sampleLeft;
+            averageL+=sampleLeft*sampleLeft;
+            averageR+=sampleRight*sampleRight;
             pos+=BytePorMu;
         }
+        data.push_back(trackauxL);
+        data.push_back(trackauxR);
     }
    //cout<<"];"<<endl;
-   average/=((signalSize-44)/BytePorMu);
+   averageL/=data[0].size()/BytePorMu;
 
    //printf("E %f \n\n",average);
-   //cout<<"Tam: "<<data.size()<<endl;
+   cout<<"Signal: "<<signalSize<<endl;
 }
 
-void Wave::printTrack()
+void Wave::printTrack(int channel)
 {
     cout<<"W=[ ";
-    for (int i = 0; i < data.size(); i++)
+    for (int i = 0; i < data[channel].size(); i++)
     {
-        cout << data[i] << "; ";
+        if(2==BytePorMu)
+            cout << (short)data[channel][i] << "; ";
+        else 
+            cout << data[channel][i] << "; ";
     }
     cout<<" ];"<<endl;
     
 }
 
-void Wave::newTrack(Matrix &spectreR, Matrix &spectreI)
+void Wave::newTrack(MatrixFloat &spectreR, MatrixFloat &spectreI, int channel)
 {
-    data.clear();
+    data[channel].clear();
     int frameSize = spectreR[0].size();
-    trackDou salidaR, salidaI;
+    trackFloat salidaR, salidaI;
 
     for (int i = 0; i < spectreR.size(); i++)
     {
@@ -177,19 +186,20 @@ void Wave::newTrack(Matrix &spectreR, Matrix &spectreI)
         tRF1D(spectreR[i], spectreI[i], salidaR, salidaI, 1);
         for (int j = 0; j < frameSize; j++)
         {
-            data.push_back((short)round(salidaR[j]));
+            data[channel].push_back((int)round(salidaR[j]));
         }
     }
-    signalSize = data.size()*BytePorMu;
+    //signalSize = data.size()*BytePorMu;
 }
 
-void Wave::writeWave()
+void Wave::writeWave(string add)
 {
 
     FILE *pFile;
-    nameWave+="2.wav";
+    add+=".wav";
+    nameWave+=add;
     char aux;
-    short auxi;
+    int auxi, auxr;
     const char *punter=nameWave.c_str();
 
     pFile=fopen(punter,"w");
@@ -215,10 +225,14 @@ void Wave::writeWave()
     fwrite(&signalSize , 4 , 1 , pFile);
     cout << "length: "<<BytePorMu<<endl;
 
-    for (int i = 0; i < data.size(); i++)
+    for (int i = 0; i < data[0].size(); i++)
     {
-        auxi = data[i];
+        auxi = data[0][i];
         fwrite(&auxi,BytePorMu , 1 , pFile);
+        if(2==wChannels){
+            auxr = data[1][i];
+            fwrite(&auxr,BytePorMu , 1 , pFile);
+        }
     }
     
     fclose(pFile);
