@@ -19,5 +19,12 @@ namespace audio{
     typedef complex<double>** matrizComplex;
     typedef int* trackInt;
     typedef int** matrizInt;
+    typedef struct 
+    {
+        int v; // valor de la variable 
+        int f; // frecuencoa de la variable
+    } hist;  
+    typedef vector<hist> Histogram;
+    
 }
 #endif

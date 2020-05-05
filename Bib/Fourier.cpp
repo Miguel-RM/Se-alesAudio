@@ -1,21 +1,22 @@
 #include "estructuras.cpp"
-#include <complex>
-#include<cmath>
+#include <complex.h>
+#include <fftw3.h>
+#include <cmath>
 
-using namespace::audio;
+using namespace ::audio;
 
 #ifndef FOURIER_CPP
 #define FOURIER_CPP
 
-namespace Fourier{
-
+namespace Fourier
+{
 
 /**********************************************
 * Funciones independientes.                   *
 *                                             *
 ***********************************************/
 
-int log2(int N) /*function to calculate the log2(.) of int numbers*/
+int log2(int N)
 {
   int k = N, i = 0;
   while (k)
@@ -26,7 +27,7 @@ int log2(int N) /*function to calculate the log2(.) of int numbers*/
   return i - 1;
 }
 
-int reverse(int N, int n) //calculating revers number
+int reverse(int N, int n)
 {
   int j, p = 0;
   for (j = 1; j <= log2(N); j++)
@@ -37,92 +38,86 @@ int reverse(int N, int n) //calculating revers number
   return p;
 }
 
-void ordina(complex<double> *f1, int N) //using the reverse order in the array
+void ordina(complex<double> *f1, int N)
 {
-  complex<double> f2[N];
-  for (int i = 0; i < N; i++)
-    f2[i] = f1[reverse(N, i)];
-  for (int j = 0; j < N; j++)
-    f1[j] = f2[j];
+  complex<double> f2;
+  int rev;
+
+  for (int i = 0; i < N / 2; i++)
+  {
+    rev = reverse(N, i);
+    f2 = f1[i];
+    f1[i] = f1[rev];
+    f1[rev] = f2;
+  }
 }
 
 void FFT(complex<double> *f, int N, int signo) //
 {
-  ordina(f, N); //first: reverse order
+  ordina(f, N);
+  long mitad = N >> 1;
   complex<double> *W;
-  W = (complex<double> *)malloc(N / 2 * sizeof(complex<double>));
-  W[1] = polar(1., signo*2. * PI / N);
+  complex<double> temp, Temp;
+  W = new complex<double>[mitad];
+  W[1] = polar(1., signo * 2. * PI / N);
   W[0] = 1;
-  for (int i = 2; i < N / 2; i++)
+  for (long i = 2; i < mitad; i++)
     W[i] = pow(W[1], i);
-  int n = 1;
-  int a = N / 2;
-  for (int j = 0; j < log2(N); j++)
+  long n = 1;
+  long a = mitad;
+
+  for (long j = 0; j < log2(N); j++)
   {
-    for (int i = 0; i < N; i++)
+    for (long i = 0; i < N; i++)
     {
       if (!(i & n))
       {
-        complex<double> temp = f[i];
-        complex<double> Temp = W[(i * a) % (n * a)] * f[i + n];
+        temp = f[i];
+        Temp = W[(i * a) % (n * a)] * f[i + n];
         f[i] = temp + Temp;
         f[i + n] = temp - Temp;
       }
     }
-    n *= 2;
-    a = a / 2;
+    n <<= 1;
+    a >>= 1;
   }
 }
 
-complex<double> tRF1C(int N, trackComplex entrada, int signo, int K)
+void TRFW(trackComplex f, int N, int signo)
 {
-    
-    double theta = signo * 2 * PI * K;
-    complex<double> aux, e, salida;
-    trackComplex input;
-    int mitad = N >> 1;
-    double factor;
-    int n = 2;
+  fftw_complex *in, *out;
+  fftw_plan p;
 
-    input = new complex<double>[mitad];
+  in = (fftw_complex *)fftw_malloc(sizeof(fftw_complex) * N);
+  out = (fftw_complex *)fftw_malloc(sizeof(fftw_complex) * N);
 
-    factor = (1 == signo) ? (double)1 / N : 1;
+  for (int i = 0; i < N; i++)
+  {
+    in[i][0] = f[i].real();
+    in[i][1] = f[i].imag();
+  }
 
-    while (1 <= mitad)
+  p = fftw_plan_dft_1d(N, in, out, signo, FFTW_ESTIMATE);
+  fftw_execute(p);
+
+  for (int i = 0; i < N; i++)
+  {
+    if(1==signo){
+      f[i].real(out[i][0]);
+      f[i].imag(out[i][1]);
+    }else
     {
-        e.real(cos(theta / n));
-        e.imag(sin(theta / n));
-        for (int i = 0; i < mitad; i++)
-        {
-            if(mitad == N>>1){
-              aux = entrada[i+mitad]*e;
-              input[i] = entrada[i]+aux;
-            }else
-            {
-              aux = input[i+mitad]*e;
-              input[i] += aux;
-            }
-        }
-        mitad >>= 1;
-        n <<= 1;
+      f[i].real(out[i][0]/N);
+      f[i].imag(out[i][1]/N);
     }
-
-    salida = input[0] * factor;
-
-    delete[] input;
-    return salida;
-}
-
-void TRF(trackComplex entrada, int N, int signo)
-{
-    trackComplex p = new complex<double>[N];
-    for (int K = 0; K < N; K++)
-        p[K]=tRF1C(N, entrada, signo, K);
-    for (int K = 0; K < N; K++)
-        entrada[K] = p[K];
-    delete[] p;
     
+  }
+
+  fftw_execute(p);
+  fftw_destroy_plan(p);
+  fftw_free(in);
+  fftw_free(out);
 }
 
-}
+} // namespace Fourier
 #endif

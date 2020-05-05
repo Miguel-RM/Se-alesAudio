@@ -70,6 +70,7 @@ Spectrum::Spectrum(Wave &audio, int channel)
 
 Spectrum::~Spectrum()
 {
+    
 }
 
 void Spectrum::divideTrack(int mode, trackInt data, long Samples)

@@ -87,14 +87,15 @@ trackFloat multTrack(trackFloat &A, trackFloat &B)
     return c;
 }
 
-void multTK(int framesize, int sigma, trackComplex T, trackDouble K, int desp)
+void SpectrepuntKern(int framesize, int kernelsize, trackComplex T, trackDouble K, int desp)
 {
 
-    int up = desp + 3*sigma;
+    int mitad = (kernelsize/2);
+    int up = desp + mitad;
     int frecMax = framesize>>1;
     int i = 0;
 
-    desp -= 3*sigma;
+    desp -= mitad;
     framesize--;
 
     if(desp<0){ i = - desp; desp += abs(desp); } 

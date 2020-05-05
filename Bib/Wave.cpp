@@ -39,18 +39,39 @@ private:
     matrizInt data;
     double averageL; // La energia promedio del audio
     double averageR;
+    long lenComplex;
     string nameWave; //path y nombre del audio
     void readWave();
 
 public:
 
     Wave(string Name);
+    int getSamples();
     void printTrack(int channel);
+    trackComplex int2Complex(int channel);
     void newTrack(int marcos, int frameSize, matrizComplex spectre, int channel);
+    void newTrack(int length, trackComplex spectre, int channel);
     void writeWave(string add);
     int getSamplesPerSec();
+    int getLenComplex();
+    trackInt getTrack(int channel);
     ~Wave();
 };
+
+int Wave::getLenComplex()
+{
+    return lenComplex;
+}
+
+trackInt Wave::getTrack(int channel)
+{
+    return data[channel];
+}
+
+int Wave::getSamples()
+{
+    return Samples;
+}
 
 int Wave::getSamplesPerSec()
 {
@@ -108,6 +129,26 @@ Wave::Wave(string Name)
     readWave();
 }
 
+trackComplex Wave::int2Complex(int channel)
+{
+
+  long length=Samples;
+  //int log = log2(Samples);
+  //length = (log2f32(Samples)-log) > 0 ? length<<=(log+1) : length<<=log;
+  trackComplex aux = new complex<double>[length];
+
+  cout << "tamaño "<< length << endl;
+  for (int i = 0; i < Samples; i++)
+  {
+    aux[i] = (double)data[channel][i];
+    //cout << aux[i] ;
+  }
+  lenComplex = length;
+
+  return aux;
+}
+
+
 Wave::~Wave()
 {
     delete[] data[0];
@@ -161,7 +202,6 @@ void Wave::readWave()
             
             trackL[i] = (short)sampleLeft;
             trackR[i] = (short)sampleRight;
-            //cout<<(short)sampleLeft<<" "<<trackL[i]<<endl;
             averageL+=sampleLeft*sampleLeft;
             averageR+=sampleRight*sampleRight;
             pos+=BytePorMu<<1;
@@ -192,6 +232,16 @@ void Wave::printTrack(int channel)
     
 }
 
+void Wave::newTrack(int length, trackComplex spectre, int channel)
+{
+    //FFT(spectre, length, 1);
+    for (int j = 0; j < Samples; j++)
+    {
+            data[channel][j]=(int)spectre[j].real();
+    }
+}
+
+
 void Wave::newTrack(int marcos, int frameSize, matrizComplex spectre, int channel)
 {
 
@@ -200,20 +250,17 @@ void Wave::newTrack(int marcos, int frameSize, matrizComplex spectre, int channe
     cout << "Kesima "<< Samples << endl;
     for (int i = 0; i < marcos; i++)
     {
-        TRF(spectre[i], frameSize, 1);
+        FFT(spectre[i], frameSize, 1);
         for (int j = 0; j < frameSize; j++)
         {
             if(avance+j < Samples)
             {
                 data[channel][avance+j]=(int)spectre[i][j].real();
-                //cout<<data[channel][avance+j]<<" "<<endl;
+                
             }
-            //cout << "Kesima "<< avance+j << endl;
-            //data[channel][avance+j]=(int)round(salidaR[j]);
-        }//cout << "Kesima "<< frameSize << endl;
+        }
         avance+=frameSize;
     }
-    //signalSize = data.size()*BytePorMu;
 }
 
 void Wave::writeWave(string add)

@@ -14,12 +14,12 @@ namespace Filters
     {
         for (int  i = 0; i < marcos; i++)
         {
-            multTK(framesize, sigma, spectre[i], kernel, desp);
+            SpectrepuntKern(framesize, sigma, spectre[i], kernel, desp);
         }
         
     }
     
-    trackDouble gaussiana(int sigma, double media, int orden)
+    trackDouble gaussiana(int sigma, double media)
     {
 
         double a, c, aux, poli, Max;

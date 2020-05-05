@@ -3,35 +3,52 @@
 #include "Bib/Fourier.cpp"
 #include "Bib/Filtros.cpp"
 #include "Bib/tracks.cpp"
+#include "Bib/TimeTecnics.cpp"
 
-using namespace::std;
-using namespace::Filters;
+using namespace ::std;
+using namespace ::Filters;
 
 int main()
 {
-    Wave audio("AudiosIn/oboe-bassoon"); //bosson desp= 5 sigma=3
-    //audio.printTrack(0);
-    int desp = 15, sigma = 3;
-    Spectrum marcos1(audio,0);
-    Spectrum marcos2(audio,1);
+    Wave audio("AudiosIn/oboe-bassoon"); //bosson desp= 5 sigma=3 // oboe desp = 15 sigma=3
+
+    int desp = 100, sigma = 3000; // datos necesarios para la gaussiana
+    int lengthT = audio.getSamples();
+    int lengthK = 6 * sigma + 1;
     trackDouble gauss;
 
-    gauss = gaussiana(sigma,0,0);
-    printTrack(gauss, 6*sigma+1);
-    
-    aplyKernel(marcos1.getMarcos(), marcos1.getFrame(), sigma, gauss, marcos1.getSpect(),desp);
-    aplyKernel(marcos2.getMarcos(), marcos2.getFrame(), sigma, gauss, marcos2.getSpect(),desp);
-    //marcos1.firstTrack(0);
-    
+    trackComplex chan1, chan2;
 
-    audio.newTrack(marcos1.getMarcos(), marcos1.getFrame(), marcos1.getSpect(), 0);
-    audio.newTrack(marcos2.getMarcos(), marcos2.getFrame(), marcos2.getSpect(), 1);
+    // Se crea la gaussiana y se imprime en la terminal
+    gauss = gaussiana(sigma, 0);
+    //printTrack(gauss, lengthK);
+
+    // los canales del audio son del tipo entero por lo que es necesario
+    // tranformarlos a complex
+
+    chan1 = audio.int2Complex(0);
+    chan2 = audio.int2Complex(1);
+    lengthT = audio.getLenComplex();
+    //De esta manera es posible aplicar la transformada rapida de fourier
+
+    TRFW(chan1, lengthT, FFTW_FORWARD);
+    TRFW(chan2, lengthT, FFTW_FORWARD);
+
+    //la siguiente funcion se encarga de realizar la multiplicacion del
+    // espectro de frecuencias con la gaussiana creada anteriormente
+    SpectrepuntKern(lengthT, lengthK, chan1, gauss, desp);
+    SpectrepuntKern(lengthT, lengthK, chan2, gauss, desp);
+
+    //Ahora se devuelve al dominio del tiempo
+    TRFW(chan1, lengthT, FFTW_BACKWARD);
+    TRFW(chan2, lengthT, FFTW_BACKWARD);
+
+    //Una vez en el dominio del tiempo se guardan las pistas en el audio
+    audio.newTrack(lengthT, chan1, 0);
+    audio.newTrack(lengthT, chan2, 1);
+
+    //para finalizar se escribe el audio en un archivo wave.
     audio.writeWave("baja");
-    //audio.printTrack(0);
-    
-    cout << "Tamaño: " << sizeof(unsigned char) << endl;
-    //audio.printTrack();*/
-    
-   
+
     return 0;
 }
