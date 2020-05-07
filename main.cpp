@@ -1,18 +1,16 @@
 #include "Bib/Wave.cpp"
-#include "Bib/Espectro.cpp"
 #include "Bib/Fourier.cpp"
 #include "Bib/Filtros.cpp"
 #include "Bib/tracks.cpp"
-#include "Bib/TimeTecnics.cpp"
 
 using namespace ::std;
 using namespace ::Filters;
 
 int main()
 {
-    Wave audio("AudiosIn/oboe-bassoon"); //bosson desp= 5 sigma=3 // oboe desp = 15 sigma=3
+    Wave audio("AudiosIn/oboe-bassoon"); 
 
-    int desp = 100, sigma = 3000; // datos necesarios para la gaussiana
+    int desp = 0, sigma = 3000; // datos necesarios para la gaussiana
     int lengthT = audio.getSamples();
     int lengthK = 6 * sigma + 1;
     trackDouble gauss;

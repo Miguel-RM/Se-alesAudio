@@ -102,7 +102,7 @@ void TRFW(trackComplex f, int N, int signo)
 
   for (int i = 0; i < N; i++)
   {
-    if(1==signo){
+    if(-1==signo){
       f[i].real(out[i][0]);
       f[i].imag(out[i][1]);
     }else
