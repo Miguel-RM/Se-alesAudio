@@ -12,12 +12,12 @@ int main()
 
     int desp = 0, sigma = 3000; // datos necesarios para la gaussiana
     int lengthT = audio.getSamples();
-    int lengthK = 6 * sigma + 1;
+    int lengthK = 6 * sigma + 1; //tamaño de la gaussiana
     trackDouble gauss;
 
     trackComplex chan1, chan2;
 
-    // Se crea la gaussiana y se imprime en la terminal
+    // Se crea la gaussiana
     gauss = gaussiana(sigma, 0);
     //printTrack(gauss, lengthK);
 
