@@ -83,7 +83,9 @@ Wave::Wave(string Name)
     int i;
     FILE *pFile;
     nameWave = Name;
+    Name=PATH+Name;
     Name+=".wav";
+    cout << Name<<endl;
     const char *punter=Name.c_str();
 
     pFile=fopen(punter,"r");
@@ -121,7 +123,7 @@ Wave::Wave(string Name)
     printf("wBitsPerSample=%u\n",wBitsPerSample);
     printf("dataID=%s\n",dataID);
     printf("chunkSize=%u\n",signalSize);
-    */
+    //*/
     
     BytePorMu=wBitsPerSample/8;
     Samples=signalSize/BytePorMu;
@@ -153,6 +155,7 @@ Wave::~Wave()
 {
     delete[] data[0];
     delete[] data[1];
+    delete[] data;
 }
 
 void Wave::readWave()
@@ -161,7 +164,7 @@ void Wave::readWave()
    long pos=0;
    int sampleLeft = 0,sampleRight = 0, i;
    trackInt trackL, trackR;
-   string name = nameWave + ".wav";
+   string name = PATH + nameWave + ".wav";
    const char *punter=name.c_str();
 
     pFile=fopen(punter,"r");

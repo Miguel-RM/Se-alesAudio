@@ -6,7 +6,12 @@ using namespace::std;
 #define ESTRUCT_CPP
 namespace audio{
     #define PI 3.14159265359
-    #define Period 30e-3
+    #define PERIOD 30e-3
+    #define SLICE 10e-3
+    #define FILTERS 15
+    #define BANDS 16
+    #define PATH "AudiosIn/"
+    #define PATHDICT "dictionary/"
     typedef vector<double> trackFloat;
     typedef vector<int> track32;
     typedef vector<short> track16;
@@ -23,7 +28,7 @@ namespace audio{
     {
         int v; // valor de la variable 
         int f; // frecuencoa de la variable
-    } hist;  
+    } hist;
     typedef vector<hist> Histogram;
     
 }

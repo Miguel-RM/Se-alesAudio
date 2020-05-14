@@ -13,47 +13,77 @@ using namespace::audio;
  * *********************************************************************/
 
 
-namespace TimeTecnics{
+namespace FreqTecnics{
 
-void DTW()
+int BarkScale(double f)
 {
+  double factor;
+  int banda;
+  factor = f/7500;
 
-}
+  banda = 13 * atan(0.76 * f / 1000) + 3.5 * atan(factor * factor);
 
-trackDouble BarkScale()
-{
-
-}
-
-trackDouble MFCC()
-{
-
+  return banda;
 }
 
 trackDouble Hamming(int N)
 {
-  int i = 0;
+  
   trackDouble ventana = new double[N];
-  for (; i < N; i++)
+  for (int i = 0; i < N; i++)
   {
-    ventana[i] = 0.53836 - 0.46164 * cos(2 * PI * i / (N_MUESTRAS - 1));
+    ventana[i] = 0.53836 - 0.46164 * cos(2 * PI * i / (N - 1));
   }
   return ventana;
 }
 
-void CosDistance()
+double CosDistance(trackDouble A, trackDouble B, int length)
 {
+
+  double Resultado, SuACu = 0.0, SuBCu = 0.0, SuAB = 0.0;
+
+  for (int i = 0; i < length; i++)
+  {
+
+    SuAB += A[i] * B[i];
+    SuACu += A[i] * A[i];
+    SuBCu += B[i] * B[i];
+  }
+
+  SuACu = sqrt(SuACu);
+  SuBCu = sqrt(SuBCu);
+
+  Resultado = 1.0 - (SuAB / (SuACu * SuBCu));
+
+  return Resultado;
 
 }
 
-void ManhathaDistance()
+double minkowskiDistance(trackDouble A, trackDouble B, int length)
 {
+  double SuAB = 0.0, aux;
 
+  for (int i = 0; i < length; i++)
+  {
+
+    aux = A[i] - B[i];
+    SuAB += aux * aux;
+  }
+  SuAB = sqrt(SuAB);
+  return SuAB;
 }
 
-void minkowskiDistance()
+double ManhathaDistance(trackDouble A, trackDouble B, int length)
 {
+  double SuAB = 0.0;
 
+  for (int i = 0; i < length; i++)
+  {
+
+    SuAB += fabs(A[i] - B[i]);
+  }
+
+  return SuAB;
 }
 
 }

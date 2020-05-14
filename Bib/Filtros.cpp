@@ -10,14 +10,34 @@ using namespace::Tracks;
 
 namespace Filters
 {
-    void aplyKernel(int marcos, int framesize, int sigma, trackDouble kernel, matrizComplex spectre, int desp)
+
+/*
+    double applyKernel(long pos, int lengthK, trackFloat kernel, trackInt track)
     {
-        for (int  i = 0; i < marcos; i++)
+        double y = 0;
+        for (int  i = 0; i < length[k]; i++)
         {
-            SpectrepuntKern(framesize, sigma, spectre[i], kernel, desp);
+            y += kernel[i]*track[pos-i];
         }
-        
+        return y;
     }
+
+    trackDouble Mixer(long lengthT, matrizFloat bank, trackDouble weighing, trackInt track)
+    {
+
+        trackDouble mix = new double[lengthT];
+        for (int i = 0; i < bank.size(); i++)
+        {
+
+            for (int j = 0; j < lengthT; j++)
+            {
+                mix[j] += applyKernel(j, bank[i].size(), bank[i], track);
+            }
+            
+        }
+
+        return mix;
+    }*/
     
     trackDouble gaussiana(int sigma, double media)
     {

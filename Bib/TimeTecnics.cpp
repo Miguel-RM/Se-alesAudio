@@ -15,14 +15,6 @@ using namespace::audio;
 
 namespace TimeTecnics{
 
-/*
-void AudioPart(wave *Audio, int framaSize, int advance){
-
-    unsigned long int position, length;
-    trackDouble track;
-
-}*/
-
 trackDouble Convolution(trackDouble Track, int lenTrack, trackDouble kernel, int lenKernel){
     
 
@@ -122,11 +114,12 @@ trackDouble CorrelationCirc(trackDouble Track, int lenTrack, trackDouble kernel,
     return correl;
 }
 
-double EnergyTimeShort(trackInt chunk, int lenChunk){
+double EnergyTimeShort(int start, trackInt chunk, int lenChunk){
 
 
     double energy = 0;
-    for (int i = 0; i < lenChunk; i++)
+    int end = start + lenChunk;
+    for (int i = start; i < end; i++)
     {
         energy +=  chunk[i]*chunk[i];
     }
@@ -151,16 +144,81 @@ int signo(int muestra)
     return (muestra >= 0 ? 1 : -1);
 }
 
-double ZeroCrossing(trackInt chunk, int lenChunk){
+int ZeroCrossing(int start, trackInt chunk, int lenChunk){
 
-    double cross = 0;
-
-    for (int i = 1; i < lenChunk; i++)
+    int cross = 0;
+    int end = start + lenChunk;
+    for (int i = start + 1; i < lenChunk; i++)
     {
         cross += signo(chunk[i]) - signo(chunk[i-1]);
     }
     
     return cross;
+}
+
+int forwardSearch(long lengthT, trackInt track, double weight[], double threshold[], int framesize, int slide)
+{
+
+    double E = 0;
+    double Weighing = 0;
+    double Entro= 0;
+    int cross = 0;
+
+    for (int pos = 0; pos < lengthT; pos+=slide)
+    {
+        E = EnergyTimeShort(pos, track, framesize);
+        cross = ZeroCrossing(pos, track, framesize);
+        Weighing = E>threshold[0] ? weight[0] : 0 + cross<threshold[1]? weight[1] : 0 + Entro*weight[2];
+
+        if( Weighing > threshold[3]) return pos;
+
+    }
+
+    return -1;
+    
+}
+
+int backwardSearch(long lengthT, trackInt track, double weight[], double threshold[], int framesize, int slide)
+{
+
+    double E = 0;
+    double Weighing = 0;
+    double Entro= 0;
+    int cross = 0;
+
+    trackInt marco = new int[framesize];
+
+    for (int pos = lengthT-1; pos > framesize; pos-=slide)
+    {
+        for (int i = 0; i < framesize; i++)
+            marco[i] = track[pos - i];
+        
+        E = EnergyTimeShort(0, marco, framesize);
+        cross = ZeroCrossing(0, marco, framesize);
+        Weighing = E>threshold[0] ? weight[0] : 0 + cross<threshold[1]? weight[1] : 0 + Entro*weight[2]; 
+
+        if( Weighing > threshold[3]) return pos;
+
+    }
+
+    return -1;
+}
+
+int Segmenter(long lengthT, trackInt track, int framesize, int slide, int &start, int &end)
+{
+    double weight[3] = {0.6,0.4,0.0};
+    double threshold[4];
+
+    threshold[0] = EnergyTimeShort(0, track, lengthT)*1e-3;
+    threshold[1] = 35;
+    threshold[2] = 0;
+    threshold[3] = 0.5;
+    start = forwardSearch(lengthT, track, weight,threshold, framesize, slide);
+    end   = backwardSearch(lengthT, track, weight,threshold, framesize, slide);
+
+    if(-1 == start || -1 == end) return -1;
+    
+    return 1;
 }
 
 }
