@@ -114,6 +114,22 @@ trackDouble CorrelationCirc(trackDouble Track, int lenTrack, trackDouble kernel,
     return correl;
 }
 
+void Normal(int start, trackInt chunk, int lenChunk){
+
+    double max = -1;
+    int end = start + lenChunk;
+    for (int i = start; i < end; i++)
+    {
+        if(chunk[i]> max)
+            max = abs(chunk[i]);
+    }
+
+    for (int i = start; i < end; i++)
+    {
+        chunk[i] /= max;
+    }
+}
+
 double EnergyTimeShort(int start, trackInt chunk, int lenChunk){
 
 
@@ -127,16 +143,78 @@ double EnergyTimeShort(int start, trackInt chunk, int lenChunk){
     return energy;
 }
 
-
-double CreateHistogram(trackInt chunk){
-
-return 0.0;
-    
+void insert(int value, int pos, Histogram &H)
+{
+    hist block;
+    block.v = value;
+    block.f = 1;
+    H.insert(H.begin()+pos,block);
 }
 
-double EntropyTimeShort(trackInt chunk){
+int BinarySearch(int value, Histogram &H)
+{
+    int start = 0;
+    int it = 0;
+    int end = H.size()-1;
+    int middle = start + (end-start)/2;
+    double aux;
     
-    return 0.0;
+
+    if (0 == H.size())
+    {
+        insert(value, 0, H);
+        return 0;
+    }
+    
+    while (true)
+    {
+        if(H[middle].v == value){
+            H[middle].f++;
+            break;
+        }else if(value > H[middle].v)
+        {
+            if (middle == end) { insert(value, middle+1, H); break; }
+            start= middle+1;
+            aux = (double) (end-start)/2;
+            middle = start + round(aux);
+        }else if(value < H[middle].v)
+        {
+            if (middle == start) { insert(value, middle, H); break; }
+            end = middle-1;
+            aux = (end-start)/2;
+            middle = start + aux;
+        } it++;
+    }  
+    //cout << "iteraciones " << it << endl;
+    return 0;  
+}
+
+Histogram CreateHistogram(int start, trackInt &chunk, int length){
+
+    Histogram H;
+    int end = start + length;
+
+    for (int i = start; i < end; i++)
+    {
+        BinarySearch(chunk[i],H);
+    }
+    return H;
+}
+
+double EntropyTimeShort(int start, trackInt chunk, int length){
+    
+    Histogram H;
+    double sum=0;
+    double p,h;
+
+    H = CreateHistogram(start, chunk, length);
+    for (int i = 0; i < H.size(); i++)
+    {
+        p = H[i].f / (double)length;
+        sum += p*log10(p);
+    }
+    h = (-1)*sum;
+    return h;
 }
 
 int signo(int muestra)
@@ -150,27 +228,49 @@ int ZeroCrossing(int start, trackInt chunk, int lenChunk){
     int end = start + lenChunk;
     for (int i = start + 1; i < lenChunk; i++)
     {
-        cross += signo(chunk[i]) - signo(chunk[i-1]);
+        cross += abs(signo(chunk[i]) - signo(chunk[i-1]));
     }
     
-    return cross;
+    return cross;///(2*lenChunk);
 }
 
-int forwardSearch(long lengthT, trackInt track, double weight[], double threshold[], int framesize, int slide)
+int forwardSearch(long lengthT, trackInt track, int framesize, int slide)
 {
 
     double E = 0;
     double Weighing = 0;
-    double Entro= 0;
+    //double Entropy= 0;
+    double thresholdE = 0;
+    double thresholdC = 9e18;
     int cross = 0;
+    int count = 0;
+    int e,c;
 
     for (int pos = 0; pos < lengthT; pos+=slide)
     {
         E = EnergyTimeShort(pos, track, framesize);
         cross = ZeroCrossing(pos, track, framesize);
-        Weighing = E>threshold[0] ? weight[0] : 0 + cross<threshold[1]? weight[1] : 0 + Entro*weight[2];
+        //Entropy = EntropyTimeShort(pos, track, framesize);
+        //cout << "Cross: " << cross << " umbral: " << thresholdC <<endl;
+        //cout << "En: " << E << " umbral: " << thresholdE <<endl;
+        if(count < MTRASH)
+        {
+            if(thresholdE<E)
+                thresholdE = E;
+            if(thresholdC > cross)
+                thresholdC = cross;
+            count ++;
+        }else
+        {
+            e = E > thresholdE ? 1 : 0;
+            c = cross < thresholdC && cross < 25? 1 : 0;
+            Weighing = e + c;
+            //cout << "W: " <<  Weighing <<" cross " <<  c <<endl;
+                   
+        }
 
-        if( Weighing > threshold[3]) return pos;
+        //cout << "Pos: "<< pos<<" FrameS "<< framesize << endl;
+        if( Weighing > 0) return pos;
 
     }
 
@@ -178,13 +278,17 @@ int forwardSearch(long lengthT, trackInt track, double weight[], double threshol
     
 }
 
-int backwardSearch(long lengthT, trackInt track, double weight[], double threshold[], int framesize, int slide)
+int backwardSearch(long lengthT, trackInt track, int framesize, int slide)
 {
 
     double E = 0;
     double Weighing = 0;
-    double Entro= 0;
+    //double Entropy = 0;
+    double thresholdE = 0;
+    double thresholdC = 9e18;
     int cross = 0;
+    int count = 0;
+    int e,c;
 
     trackInt marco = new int[framesize];
 
@@ -195,9 +299,29 @@ int backwardSearch(long lengthT, trackInt track, double weight[], double thresho
         
         E = EnergyTimeShort(0, marco, framesize);
         cross = ZeroCrossing(0, marco, framesize);
-        Weighing = E>threshold[0] ? weight[0] : 0 + cross<threshold[1]? weight[1] : 0 + Entro*weight[2]; 
+        //cout << "Cross: " << cross << " umbral: " << thresholdC <<endl;
+        //cout << "En: " << E << " umbral: " << thresholdE <<endl;
+        //Entropy = EntropyTimeShort(0, marco, framesize);
+        
 
-        if( Weighing > threshold[3]) return pos;
+        if(count < MTRASH)
+        {
+            if(thresholdE<E)
+                thresholdE = E;
+            if(thresholdC > cross)
+                thresholdC = cross;
+            count ++;
+        }else
+        {
+            e = E > thresholdE ? 1 : 0;
+            c = cross < thresholdC && cross < 25? 1 : 0;
+            Weighing = e + c;
+            //cout << "W: " <<  Weighing <<" cross " <<  c <<endl;      
+        }
+        
+        //cout << "Pos: "<< pos<<" FrameS "<< framesize << endl;
+
+        if( Weighing > 0) return pos;
 
     }
 
@@ -206,16 +330,13 @@ int backwardSearch(long lengthT, trackInt track, double weight[], double thresho
 
 int Segmenter(long lengthT, trackInt track, int framesize, int slide, int &start, int &end)
 {
-    double weight[3] = {0.6,0.4,0.0};
-    double threshold[4];
 
-    threshold[0] = EnergyTimeShort(0, track, lengthT)*1e-3;
-    threshold[1] = 35;
-    threshold[2] = 0;
-    threshold[3] = 0.5;
-    start = forwardSearch(lengthT, track, weight,threshold, framesize, slide);
-    end   = backwardSearch(lengthT, track, weight,threshold, framesize, slide);
+    //Normal(0, track, lengthT);
+    start = forwardSearch(lengthT, track, framesize, slide);
+    end   = backwardSearch(lengthT, track, framesize, slide);
 
+
+    //cout << "start: "<< start<< " end "<< end<< endl;
     if(-1 == start || -1 == end) return -1;
     
     return 1;

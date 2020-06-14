@@ -25,32 +25,55 @@ private:
     double max;
     double min;
     int marcos;
+    int filtros;
     int slice;
     string name;
     matrizDouble spect;
 
 public:
     Spectrum(Wave &audio, int channel);
+    Spectrum(string name);
     Spectrum();
     matrizDouble getSpect();
     int getMarcos();
     int getFrame();
+    string getName();
     void clear();
     void save();
     void load(string name);
     void firstTrack(int i);
     void createPPM(string Nombre);
+    void newSpectrum(Wave &audio, int channel);
+    void createPPM();
     void divideTrack(trackInt data, long samples, int SamplesPerSec);
     double DTW(Spectrum &B);
+    double DTWSandC(Spectrum &B);
     ~Spectrum();
 };
+
+string Spectrum::getName()
+{
+    return name;
+}
+
+void Spectrum::createPPM()
+{
+    string path = "Espect/" + name;
+    createPPM(path);
+}
 
 Spectrum::Spectrum()
 {
     spect = NULL;
     max = -1;
-    min = 9999999;
+    min = 9e16;
     marcos = 0;
+    filtros = 0;
+}
+
+Spectrum::Spectrum(string name)
+{
+    load(name);
 }
 
 void Spectrum::load(string Name)
@@ -58,7 +81,6 @@ void Spectrum::load(string Name)
     FILE *spectre;
     char cadena[100];
     char c;
-    int aux;
     Name = PATHDICT + Name + ".sp";
 
     const char *punter = Name.c_str();
@@ -71,22 +93,22 @@ void Spectrum::load(string Name)
     }
 
     fscanf(spectre, "%s\n", cadena);
-    name=cadena;
+    name = cadena;
     fscanf(spectre, "%d,%d,\n", &bytepersample, &frameSize);
-    fscanf(spectre, "%lf,%lf,%d,\n", &max,&min,&slice);
-    fscanf(spectre, "%d,", &marcos);
-    fscanf(spectre, "%d,\n", &aux);
+    fscanf(spectre, "%lf,%lf,%d,\n", &max, &min, &slice);
+    fscanf(spectre, "%d,%d\n", &marcos,&filtros);
 
-    spect = new double*[marcos];
+    spect = new double *[marcos];
     for (int i = 0; i < marcos; i++)
     {
-        spect[i] = new double[BANDS];
-        for (int j = 0; j < BANDS; j++)
+        spect[i] = new double[filtros];
+        for (int j = 0; j < filtros; j++)
         {
             fscanf(spectre, "%lf,", &spect[i][j]);
-        }fscanf(spectre, "%c",&c);
+        }
+        fscanf(spectre, "%c", &c);
     }
-    
+
     fclose(spectre);
 }
 
@@ -106,11 +128,11 @@ void Spectrum::save()
     file << max << ",";
     file << min << ",";
     file << slice << "," << endl;
-    file << marcos << "," << BANDS << "," << endl;
+    file << marcos << "," << filtros << "," << endl;
 
     for (int i = 0; i < marcos; i++)
     {
-        for (int j = 0; j < BANDS; j++)
+        for (int j = 0; j < filtros; j++)
         {
             file << spect[i][j] << ",";
         }
@@ -124,8 +146,9 @@ void Spectrum::clear()
 {
     spect = NULL;
     max = -1;
-    min = 9999999;
+    min = 9e16;
     marcos = 0;
+    filtros = 0;
 }
 
 int Spectrum::getFrame()
@@ -145,7 +168,28 @@ matrizDouble Spectrum::getSpect()
 
 void Spectrum::firstTrack(int i)
 {
-    printTrack(spect[i], BANDS);
+    printTrack(spect[i], filtros);
+}
+
+void Spectrum::newSpectrum(Wave &audio, int channel)
+{
+    clear();
+    int factor = 128;
+    bytepersample = audio.BytePorMu;
+    frameSize = audio.getSamplesPerSec() * PERIOD;
+    slice = audio.getSamplesPerSec() * SLICE;
+    if (channel >= audio.wChannels)
+    {
+        cout << "Wrong in channel" << endl;
+        exit(0);
+    }
+    while (frameSize > factor)
+    {
+        factor <<= 1;
+    }
+    frameSize = factor;
+    divideTrack(audio.data[channel], audio.Samples, audio.getSamplesPerSec());
+    name = audio.nameWave;
 }
 
 Spectrum::Spectrum(Wave &audio, int channel)
@@ -157,7 +201,7 @@ Spectrum::Spectrum(Wave &audio, int channel)
     if (channel >= audio.wChannels)
     {
         cout << "Wrong in channel" << endl;
-        exit(0160);
+        exit(0);
     }
     while (frameSize > factor)
     {
@@ -170,40 +214,44 @@ Spectrum::Spectrum(Wave &audio, int channel)
 
 Spectrum::~Spectrum()
 {
-
-    for (int i = 0; i < marcos; i++)
+    cout << "Eliminar: " << spect << endl;
+    if (NULL != spect)
     {
-        delete[] spect[i];
+        // cout << "Eliminar: "<<spect<<endl;
+        for (int i = 0; i < marcos; i++)
+        {
+            delete[] spect[i];
+        }
+        delete[] spect;
     }
-    delete[] spect;
     //cout << "spectrum free" << endl;
 }
 
 void Spectrum::divideTrack(trackInt data, long Samples, int SamplesPerSec)
 {
-    int m, start, end, banda;
+    int m, start, end;
     unsigned long int position, length;
     trackComplex marco;
-    trackDouble bark, windows;
-    double bandwith, magnitude, energy;
+    trackDouble filterBank, windows;
+    double bandwith;
 
     Segmenter(Samples, data, frameSize, slice, start, end);
 
     length = end - start;
     max = -10;
-    min = 999999;
+    min = 9e16;
     marcos = (int)((length - frameSize) / slice);
+    filtros = BANDS;
     spect = new trackDouble[marcos];
     windows = Hamming(frameSize);
 
     position = start;
 
     m = 0;
-    cout << "start: " << start << endl;
-    cout << "end: " << end << endl;
+    //cout << "start: " << start << endl;
+    //cout << "end: " << end << endl;
     while (m < marcos)
     {
-
         marco = new complex<double>[frameSize];
         for (unsigned long i = position, j = 0; i < (position + frameSize); i++, j++)
         {
@@ -216,31 +264,93 @@ void Spectrum::divideTrack(trackInt data, long Samples, int SamplesPerSec)
 
         // se obtiene la energia en las banadas de bark
         bandwith = SamplesPerSec / frameSize;
-        bark = (double *)calloc(BANDS, sizeof(double));
-        for (int i = 0; i < frameSize / 2; i++)
-        {
-            magnitude = abs(marco[i]);
-            energy = magnitude * magnitude;
-            if (energy > max)
-                max = energy;
-            if (energy < min)
-                min = energy;
-            banda = BarkScale(i * bandwith);
-            if (banda < BANDS)
-                bark[banda] += energy;
-            else
-                break;
-        }
-
+        filterBank = bandsBark(frameSize, marco, bandwith, max, min);
+        
         delete[] marco;
-        spect[m] = bark;
 
+        spect[m] = filterBank;
         position += slice;
         m++;
     }
-    //cout << "Max: "<< max <<endl;
-    //cout << "Min: "<< min <<endl;
+
+    /*for (int i = 0; i < marcos; i++)
+    {
+        for (int j = 0; j < filtros; j++)
+        {
+            spect[i][j] /= max;
+        }
+        
+    }*/
+    
+    //cout << "Max: " << max << endl;
+    //cout << "Min: " << min << endl;
     delete[] windows;
+}
+
+double Spectrum::DTWSandC(Spectrum &B)
+{
+
+    int R = marcos, C = B.marcos, pr, pr1;
+    double less, distI, a;
+    double m = (double)(R - 1) / (double)(C - 1);
+    double distance;
+    matrizDouble costMatrix;
+    int n = ceil(R / 4);
+
+    /* Se crea la matriz de costos*/
+    costMatrix = new trackDouble[R];
+    for (int r = 0; r < R; r++)
+    {
+        //costMatrix[r] = (double *)calloc(C, sizeof(double));
+        costMatrix[r] = new double[C];
+    }
+
+    /* Se llena la matriz de costos*/
+    for (int c = 0; c < C; c++)
+    {
+        pr = m * (double)c;
+        for (int r = 0; r < R; r++)
+        {
+            if (n >= abs(r - pr))
+            {
+                if (0 == c || 0 == r)
+                    less = CosDistance(spect[r], B.spect[c], filtros);
+                else
+                {
+                    less = 9e20;
+                    pr1 = m * (double)(c - 1);
+                    distI = CosDistance(spect[r], B.spect[c], filtros);
+                    if (n >= abs((r - 1) - pr1))
+                        less = costMatrix[r - 1][c - 1] + 2 * distI;
+
+                    if (n >= abs(r - pr1))
+                    {
+                        a = costMatrix[r][c - 1] + distI;
+                        less = less > a ? a : less;
+                    }
+
+                    if (n >= abs((r-1) - pr))
+                    {
+                        a = costMatrix[r - 1][c] + distI;
+                        less = less > a ? a : less;
+                    }
+                }
+                costMatrix[r][c] = less;
+            }
+        }
+    }
+
+    /*Se obtiene la distancia*/
+    distance = costMatrix[R - 1][C - 1];
+
+    /* Liberación de la memoria perteneciente a la matriz de costos*/
+    for (int r = 0; r < R; r++)
+    {
+        delete[] costMatrix[r];
+    }
+    delete[] costMatrix;
+
+    return distance;
 }
 
 double Spectrum::DTW(Spectrum &B)
@@ -248,7 +358,7 @@ double Spectrum::DTW(Spectrum &B)
     double less, n, m, distI, distII;
     matrizDouble costMatrix;
     int N = marcos, M = B.marcos;
-    int r;
+    int r = 10;
 
     costMatrix = new trackDouble[N];
     for (int i = 0; i < N; i++)
@@ -256,17 +366,17 @@ double Spectrum::DTW(Spectrum &B)
         costMatrix[i] = new double[M];
     }
 
-    costMatrix[0][0] = CosDistance(spect[0], B.spect[0], BANDS);
+    costMatrix[0][0] = CosDistance(spect[0], B.spect[0], filtros);
     for (int i = 1; i < M; i++)
     {
-        //if(i<r)
-        costMatrix[0][i] = CosDistance(spect[0], B.spect[i], BANDS) + costMatrix[0][i - 1];
+        if (i < r)
+            costMatrix[0][i] = CosDistance(spect[0], B.spect[i], filtros) + costMatrix[0][i - 1];
         //else break;
     }
     for (int i = 1; i < N; i++)
     {
         //if(i<r)
-        costMatrix[i][0] = CosDistance(spect[i], B.spect[0], BANDS) + costMatrix[i - 1][0];
+        costMatrix[i][0] = CosDistance(spect[i], B.spect[0], filtros) + costMatrix[i - 1][0];
         //else break;
     }
 
@@ -276,7 +386,7 @@ double Spectrum::DTW(Spectrum &B)
         {
 
             //if(abs(i-j)<r){
-            distI = CosDistance(spect[j], B.spect[i], BANDS);
+            distI = CosDistance(spect[j], B.spect[i], filtros);
             less = costMatrix[j - 1][i - 1] + 2 * distI;
             distII = costMatrix[j][i - 1] + distI;
 
@@ -314,7 +424,7 @@ void Spectrum::createPPM(string Nombre)
     const char *Nom = Nombre.c_str();
     ppm = fopen(Nom, "w");
     int limit_ext = marcos;
-    int limit_int = BANDS;
+    int limit_int = filtros;
     double Acumulador, aux = max - min;
 
     if (ppm == NULL)
@@ -335,12 +445,10 @@ void Spectrum::createPPM(string Nombre)
         for (int j = 0; j < limit_ext; j++)
         {
 
-            Acumulador = spect[j][16 - i];
+            Acumulador = spect[j][filtros - i];
             Acumulador -= min;
-            Acumulador = (Acumulador * 255) / aux;
-            //mEG[j][17-i]=Acumulador;
+            Acumulador = (Acumulador * 255.0) / aux;
             fprintf(ppm, "%d ", (int)Acumulador);
-            //printf("banda %d; %f \n",j,Acumulador);
         }
         fprintf(ppm, "\n");
         // printf("\nfin\n");

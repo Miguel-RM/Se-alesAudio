@@ -9,36 +9,53 @@
 class Dictionary
 {
 private:
-    vector<Spectrum> dictionary;
+    vector<Spectrum *> dictionary;
 
 public:
     Dictionary(/* args */);
-    void add(Spectrum &A);
+    void add(Spectrum *A);
     void remove(int index);
-    void search(Spectrum &A, int &pos, double &distance);
+    void search(Spectrum *A, int &pos, string &name, double &distance);
+    void spectrogram();
     void save();
     ~Dictionary();
 };
 
-void Dictionary::search(Spectrum &A, int &pos, double &distance)
+void Dictionary::spectrogram()
 {
-    double dist;
-    distance = 999999999;
     for (int i = 0; i < dictionary.size(); i++)
     {
-        dist = dictionary[i].DTW(A);
+        dictionary[i]->createPPM();
+    }
+}
+
+void Dictionary::search(Spectrum *A, int &pos, string &name, double &distance)
+{
+    double dist;
+    distance = 9e16;
+    pos = -1;
+    for (int i = 0; i < dictionary.size(); i++)
+    {
+        dist = dictionary[i]->DTWSandC(*A);
+        cout << "d: " << dist << " N: " << dictionary[i]->getName() << endl;
         if (distance > dist)
         {
             distance = dist;
             pos = i;
         }
     }
+    if (-1 != pos)
+        name = dictionary[pos]->getName();
+    else
+    {
+        name = "No Match";
+        distance = -1;
+    }
 }
 
-void Dictionary::add(Spectrum &A)
+void Dictionary::add(Spectrum *A)
 {
     dictionary.push_back(A);
-    A.clear();
 }
 
 void Dictionary::save()
@@ -50,12 +67,12 @@ void Dictionary::save()
         cout << "Wrong to config File" << endl;
         exit(0);
     }
-    conf << dictionary.size()<<endl;
+    conf << dictionary.size() << endl;
 
     for (int i = 0; i < dictionary.size(); i++)
     {
-        conf << dictionary[i].name<<endl;
-        dictionary[i].save();
+        conf << dictionary[i]->name << endl;
+        dictionary[i]->save();
     }
     conf.close();
 }
@@ -65,7 +82,7 @@ Dictionary::Dictionary()
     int length;
     string name = "conf";
     string file;
-    Spectrum aux;
+    Spectrum *aux;
 
     name = PATHDICT + name;
     ifstream conf(name);
@@ -80,9 +97,8 @@ Dictionary::Dictionary()
         {
             conf >> file;
             cout << file << endl;
-            aux.load(file);
+            aux = new Spectrum(file);
             dictionary.push_back(aux);
-            aux.clear();
         }
 
         conf.close();
@@ -92,7 +108,8 @@ Dictionary::Dictionary()
 
 Dictionary::~Dictionary()
 {
-    save();
+    if (0 < dictionary.size())
+        save();
 }
 
 #endif

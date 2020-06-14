@@ -11,33 +11,133 @@ using namespace::Tracks;
 namespace Filters
 {
 
-/*
-    double applyKernel(long pos, int lengthK, trackFloat kernel, trackInt track)
+    int oneRaisedK(int k)
     {
-        double y = 0;
-        for (int  i = 0; i < length[k]; i++)
-        {
-            y += kernel[i]*track[pos-i];
-        }
-        return y;
+        if(0 == k%2)
+            return 1;
+        else 
+            return -1;
     }
 
-    trackDouble Mixer(long lengthT, matrizFloat bank, trackDouble weighing, trackInt track)
+    bool par(int M)
+    {   
+        if(0==M%2)
+            return true;
+        else 
+            return false;
+
+    }
+
+    trackDouble coefFIR(Hr &dataHr, int M)
+    {
+        int length = (dataHr[3].k - dataHr[0].k)+1, U, k, j;
+        double sum, cons = PI / M;
+        trackDouble G = new double[length];
+        trackDouble h;
+
+        if(par(M))
+            U = M/2 -1;
+        else 
+            U = (M-1)/2;
+
+        h = (double *)calloc(U+1, sizeof(double));
+
+        for (int k = dataHr[1].k, i=1; k <= dataHr[2].k; k++, i++)
+        {
+            G[i] = oneRaisedK(k);
+        }
+        G[0] = oneRaisedK(dataHr[0].k)*dataHr[0].h;
+        G[length-1] = oneRaisedK(dataHr[3].k)*dataHr[3].h;
+
+        for (int n = 0; n <= U; n++)
+        {
+            sum = 0.0;
+            k = 0==dataHr[0].k ? 1 : dataHr[0].k;
+            j = 0==dataHr[0].k ? 1 : 0;
+            for (; j < length; j++, k++)
+            {
+                sum += G[j]*cos(cons*(2*n+1)*k);
+            }
+            if(0==dataHr[0].k)
+                sum = G[0] + 2*sum;
+            else 
+                sum *= 2;
+            h[n] = sum / M;
+            
+        }
+        
+        return h;
+    }
+
+    /*************************************************************************************
+     *         Obtiene la y actual con base en los paramentros de entrada                *
+     * **********************************************************************************/
+
+    void output(int n, int outputs, trackFloat a, trackFloat b,trackInt track, trackDouble y)
+    {
+       
+        double auxb = 0, auxa = 0;
+        for (int i = 0; i < b.size(); i++)
+        {
+            auxb += b[i]*track[n - i];
+        }
+
+        for (int i = 1; i <= a.size(); i++)
+        {
+            if(outputs > 0)
+            {
+                auxa += a[i]*y[n - i];
+                outputs--;
+            }
+        }
+        
+        y[n] = auxa + auxb;
+    }
+
+    /*************************************************************************************
+     *              Obtiene la señal filtrada con el filtro m                            *
+     * **********************************************************************************/
+
+
+    void applyFilter(int lengthT, trackFloat a, trackFloat b, trackInt track, trackDouble y)
+    {
+        
+        int cont=0;
+        for (int n = 0; n < lengthT; n++)
+        {
+            if(n<b.size())
+            {
+                y[n] = (double)track[n];
+            }else
+            {
+                output(n, cont, a, b, track, y);
+                cont++;
+            }   
+        }
+    }
+
+    /*************************************************************************************
+     *         Mezcla todas las señales filtradas ponderando cada una de ellas           *
+     * **********************************************************************************/
+
+
+    trackDouble Mixer(long lengthT, trackInt track, MatrizDouble bankA, MatrizDouble bankB, trackInt lengths, trackDouble weighing)
     {
 
         trackDouble mix = new double[lengthT];
-        for (int i = 0; i < bank.size(); i++)
+        trackDouble y   = new double[lengthT];
+ 
+        for (int i = 0; i < bankB.size(); i++)
         {
-
-            for (int j = 0; j < lengthT; j++)
+            applyFilter(lengthT, bankA[i], bankB[i], track, y);
+            for (int n = 0; n < lengthT; n++)
             {
-                mix[j] += applyKernel(j, bank[i].size(), bank[i], track);
+                mix[n] += weighing[i] * y[n];
             }
-            
         }
 
         return mix;
-    }*/
+    }
     
     trackDouble gaussiana(int sigma, double media)
     {

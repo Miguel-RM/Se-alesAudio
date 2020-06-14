@@ -8,18 +8,16 @@ namespace audio{
     #define PI 3.14159265359
     #define PERIOD 30e-3
     #define SLICE 10e-3
+    #define MTRASH 8
     #define FILTERS 15
     #define BANDS 16
     #define PATH "AudiosIn/"
     #define PATHDICT "dictionary/"
+    
     typedef vector<double> trackFloat;
-    typedef vector<int> track32;
-    typedef vector<short> track16;
-    typedef vector<trackFloat> MatrixFloat;
-    typedef vector<track32> Matrix32;
-    typedef vector<track16> Matrix16;
     typedef double* trackDouble;
     typedef complex<double>* trackComplex;
+    typedef vector<trackFloat> MatrizDouble;
     typedef double** matrizDouble;
     typedef complex<double>** matrizComplex;
     typedef int* trackInt;
@@ -30,6 +28,13 @@ namespace audio{
         int f; // frecuencoa de la variable
     } hist;
     typedef vector<hist> Histogram;
+
+    typedef struct
+    {
+        double h; // energia 
+        int k; // K
+    } hr;
+    typedef vector<hr> Hr;
     
 }
 #endif

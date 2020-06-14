@@ -41,11 +41,15 @@ private:
     double averageR;
     long lenComplex;
     string nameWave; //path y nombre del audio
+    bool Full;
     void readWave();
 
 public:
 
     Wave(string Name);
+    Wave();
+    void loadWave(string Name);
+    void clear();
     int getSamples();
     void printTrack(int channel);
     trackComplex int2Complex(int channel);
@@ -76,6 +80,62 @@ int Wave::getSamples()
 int Wave::getSamplesPerSec()
 {
     return dwSamplesPerSec;
+}
+
+Wave::Wave()
+{
+    Full = false;
+}
+
+void Wave::clear()
+{
+    if(Full){
+        Full = false;
+        delete[] data[0];
+        if(2 == wChannels)
+            delete[] data[1];
+        delete[] data;
+    }
+}
+
+void Wave::loadWave(string Name)
+{
+    int i;
+    FILE *pFile;
+    nameWave = Name;
+    Name=PATH+Name;
+    Name+=".wav";
+    cout << Name<<endl;
+    const char *punter=Name.c_str();
+
+    pFile=fopen(punter,"r");
+
+    if (pFile==NULL) {
+        fprintf(stderr,"No pude abrir el archivo %s\n",punter);
+        exit(0);
+    }
+
+    clear();
+
+    fread(&groupID,4 , 1 , pFile);groupID[4]=0;
+    fread(&fileSize , 4, 1 , pFile);
+    fread(&riffType, 4, 1, pFile); riffType[4]=0;
+    fread(&chunkID , 4, 1 , pFile);
+    fread(&chunkSize , 4, 1 , pFile);
+    fread(&wFormatTag , 2, 1 , pFile);
+    fread(&wChannels , 2 , 1 , pFile);
+    fread(&dwSamplesPerSec , 4, 1 , pFile);
+    fread(&dwAvgBytesPerSec , 4 , 1, pFile);
+    fread(&wBlockAlign , 2 , 1, pFile);
+    fread(&wBitsPerSample , 2 , 1, pFile);
+    fread(&dataID , 4 , 1 , pFile); dataID[4]=0;
+    fread(&signalSize , 4 , 1 , pFile);
+    
+    BytePorMu=wBitsPerSample/8;
+    Samples=signalSize/BytePorMu;
+    fclose(pFile);
+    readWave();
+    Full = true;
 }
 
 Wave::Wave(string Name)
@@ -129,6 +189,7 @@ Wave::Wave(string Name)
     Samples=signalSize/BytePorMu;
     fclose(pFile);
     readWave();
+    Full = true;
 }
 
 trackComplex Wave::int2Complex(int channel)
@@ -153,9 +214,13 @@ trackComplex Wave::int2Complex(int channel)
 
 Wave::~Wave()
 {
-    delete[] data[0];
-    delete[] data[1];
-    delete[] data;
+    if(Full){
+        Full = false;
+        delete[] data[0];
+        if(2 == wChannels)
+            delete[] data[1];
+        delete[] data;
+    }
 }
 
 void Wave::readWave()
