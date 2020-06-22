@@ -234,43 +234,55 @@ int ZeroCrossing(int start, trackInt chunk, int lenChunk){
     return cross;///(2*lenChunk);
 }
 
-int forwardSearch(long lengthT, trackInt track, int framesize, int slide)
+int forwardSearch(double Emax, long lengthT, trackInt track, int framesize, int slide)
 {
 
     double E = 0;
     double Weighing = 0;
-    //double Entropy= 0;
-    double thresholdE = 0;
+    double thresholdE = Emax;
     double thresholdC = 9e18;
+    double NoiseE = 0;
+    double SNR = 0;
+    double e,c;
     int cross = 0;
     int count = 0;
-    int e,c;
 
     for (int pos = 0; pos < lengthT; pos+=slide)
     {
         E = EnergyTimeShort(pos, track, framesize);
         cross = ZeroCrossing(pos, track, framesize);
-        //Entropy = EntropyTimeShort(pos, track, framesize);
-        //cout << "Cross: " << cross << " umbral: " << thresholdC <<endl;
-        //cout << "En: " << E << " umbral: " << thresholdE <<endl;
+
         if(count < MTRASH)
         {
-            if(thresholdE<E)
-                thresholdE = E;
+            if(NoiseE<E)
+                NoiseE = E;
             if(thresholdC > cross)
                 thresholdC = cross;
             count ++;
+        }else if(count == MTRASH)
+        {
+            SNR = 10*log10(Emax/NoiseE);
+
+            if(SNR < 20){
+                NoiseE = Emax / pow(10, (SNR-3)/10);
+            }else if(SNR < 30)
+            {
+                NoiseE = Emax / pow(10, (SNR-5)/10);
+            }else
+            {
+                NoiseE = Emax / pow(10, (SNR-10)/10);
+            }
+            //cout << "NoisEFor " << NoiseE << endl;
+            count ++;
         }else
         {
-            e = E > thresholdE ? 1 : 0;
-            c = cross < thresholdC && cross < 25? 1 : 0;
+            e = E > NoiseE ? 0.6 : 0;
+            c = cross < thresholdC && cross < 15? 0.4 : 0;
             Weighing = e + c;
-            //cout << "W: " <<  Weighing <<" cross " <<  c <<endl;
                    
         }
-
-        //cout << "Pos: "<< pos<<" FrameS "<< framesize << endl;
-        if( Weighing > 0) return pos;
+        if( Weighing >= 0.6)
+             return pos;
 
     }
 
@@ -278,17 +290,18 @@ int forwardSearch(long lengthT, trackInt track, int framesize, int slide)
     
 }
 
-int backwardSearch(long lengthT, trackInt track, int framesize, int slide)
+int backwardSearch(double Emax, long lengthT, trackInt track, int framesize, int slide)
 {
 
     double E = 0;
     double Weighing = 0;
-    //double Entropy = 0;
-    double thresholdE = 0;
+    double thresholdE = Emax;
     double thresholdC = 9e18;
+    double NoiseE = 0;
+    double SNR = 0;
     int cross = 0;
     int count = 0;
-    int e,c;
+    double e,c;
 
     trackInt marco = new int[framesize];
 
@@ -299,44 +312,64 @@ int backwardSearch(long lengthT, trackInt track, int framesize, int slide)
         
         E = EnergyTimeShort(0, marco, framesize);
         cross = ZeroCrossing(0, marco, framesize);
-        //cout << "Cross: " << cross << " umbral: " << thresholdC <<endl;
-        //cout << "En: " << E << " umbral: " << thresholdE <<endl;
-        //Entropy = EntropyTimeShort(0, marco, framesize);
-        
 
         if(count < MTRASH)
         {
-            if(thresholdE<E)
-                thresholdE = E;
+            if(NoiseE<E)
+                NoiseE = E;
             if(thresholdC > cross)
                 thresholdC = cross;
             count ++;
+        }else if(count == MTRASH)
+        {
+            SNR = 10*log10(Emax/NoiseE);
+
+            if(SNR < 20){
+                NoiseE = Emax / pow(10, (SNR-3)/10);
+            }else if(SNR < 30)
+            {
+                NoiseE = Emax / pow(10, (SNR-5)/10);
+            }else
+            {
+                NoiseE = Emax / pow(10, (SNR-10)/10);
+            }
+            //cout << "NoisEBac " << NoiseE << endl;
+            //cout << "SNR " << SNR << endl;
+            count ++;
         }else
         {
-            e = E > thresholdE ? 1 : 0;
-            c = cross < thresholdC && cross < 25? 1 : 0;
-            Weighing = e + c;
-            //cout << "W: " <<  Weighing <<" cross " <<  c <<endl;      
+            e = E > NoiseE ? 0.6 : 0;
+            c = cross < thresholdC && cross < 15? 0.4 : 0;
+            Weighing = e + c;   
         }
         
-        //cout << "Pos: "<< pos<<" FrameS "<< framesize << endl;
-
-        if( Weighing > 0) return pos;
+        if( Weighing >= 0.6)
+             return pos;
 
     }
-
+    
     return -1;
 }
 
 int Segmenter(long lengthT, trackInt track, int framesize, int slide, int &start, int &end)
 {
 
-    //Normal(0, track, lengthT);
-    start = forwardSearch(lengthT, track, framesize, slide);
-    end   = backwardSearch(lengthT, track, framesize, slide);
+    double E = 0;
+    double NoisE = 0;
+    double Emax = -1;
+
+    for (int pos = 0; pos + framesize < lengthT-1 ; pos+=slide)
+    {
+        E = EnergyTimeShort(pos, track, framesize);
+        if(E > Emax)
+            Emax = E;
+    }
+
+    start = forwardSearch(Emax, lengthT, track, framesize, slide);
+    end   = backwardSearch(Emax, lengthT, track, framesize, slide);
 
 
-    //cout << "start: "<< start<< " end "<< end<< endl;
+    cout << "start: "<< start<< " end "<< end<< endl;
     if(-1 == start || -1 == end) return -1;
     
     return 1;

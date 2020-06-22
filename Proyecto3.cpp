@@ -6,8 +6,6 @@
 #include "Bib/TimeTecnics.cpp"
 #include "Bib/Dictionary.cpp"
 #include "Bib/Homomorphic.cpp"
-#include <stdlib.h>
-#include <limits>
 
 using namespace ::std;
 using namespace ::Filters;
@@ -27,8 +25,6 @@ void loadList(Dictionary &dataBase, string namelist)
 {
     int length;
     string file;
-    string label;
-    char chain[80];
     Spectrum *aux;
     ifstream lista(namelist);
     ifstream sp;
@@ -37,21 +33,14 @@ void loadList(Dictionary &dataBase, string namelist)
     if (lista.is_open() && lista.peek() != -1)
     {
 
-        //lista >> length;
-        lista.getline(chain, 80, '\n');
-        length = atoi(chain);
-        
+        lista >> length;
 
         for (int i = 0; i < length; i++)
         {
-            //lista >> file;
-            lista.getline(chain, 80, '\n');
-            file = chain;
+            lista >> file;
             cout << file << endl;
-            lista.getline(chain, 80, '\n');
-            label = chain;
             audio.loadWave(file);
-            aux = new Spectrum(audio, label, 0, true);
+            aux = new Spectrum(audio, 0, false);
             dataBase.add(aux);
         }
 
@@ -65,8 +54,6 @@ int main()
 
     Dictionary dataBase;
     string nombre;
-    string label;
-    char Nam[80];
     Wave audio;
     Spectrum *sp;
     
@@ -81,62 +68,43 @@ int main()
         
         cout << "Opción: ";
         cin >> c;
-        cin.ignore(std::numeric_limits<int>::max(),'\n');
-        cout << "caracter " << c << endl;
-        
         if('a' == c)
         {
             system("clear");
             menu();
             cout << "\tNombre del archivo lista: ";
-            scanf("%[^\n]",Nam);
-            nombre = Nam;
-
+            cin >> nombre;
             loadList(dataBase, nombre);
-
-            cin.ignore(std::numeric_limits<int>::max(),'\n');
             
         }else if('b' == c)
         { 
             system("clear");
             menu();
-            cout << "Nombre del audio: ";
-            scanf("%[^\n]",Nam);
-            nombre = Nam;
-            cin.ignore(std::numeric_limits<int>::max(),'\n');
-            cout << "\tEtiqueta: ";
-            scanf("%[^\n]",Nam);            
-            label = Nam;
-
+            cout << "\tNombre del audio: ";
+            cin >> nombre;
             audio.loadWave(nombre);
-            sp = new Spectrum(audio, label, 0, true);
+            sp = new Spectrum(audio, 0, false);
             dataBase.add(sp);
-
             cout << "Palabra guardada"<< endl;
-            cin.ignore(std::numeric_limits<int>::max(),'\n');
 
         }else if('c' == c)
         {
             system("clear");
             menu();
             cout << "\tNombre del audio: ";
-            scanf("%[^\n]",Nam);
-            nombre = Nam;
-            label = "Unknown";
-
+            cin >> nombre;
             audio.loadWave(nombre);
-            sp = new Spectrum(audio, label, 0, true);
-            dataBase.KNN(sp, 3);
+            sp = new Spectrum(audio, 0, false);
+            dataBase.search(sp, pos, nombre, distancia);
 
-            cin.ignore(std::numeric_limits<int>::max(),'\n');
+            cout << "Palabra: "<< nombre << endl;
+            cout << "Distancia: " << distancia << endl;
         }else if('i' == c)
         {
             system("clear");
             menu();
-            if(0 == dataBase.spectrogram())
-                cout << "Espectrogramas creados"<< endl;
-            else
-                cout << "Solo con escala de Bark"<< endl;
+            dataBase.spectrogram();
+            cout << "Espectrogramas creados"<< endl;
             
         }else if('e' == c)
         {

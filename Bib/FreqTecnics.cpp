@@ -26,10 +26,11 @@ namespace FreqTecnics
     return banda;
   }
 
-  trackDouble bandsBark(int frameSize, trackComplex marco, double bandwith, double &max, double &min)
+  trackDouble bandsBark(int frameSize, trackComplex marco, double SamplesPerSec, double &max, double &min)
   {
     int banda;
     double energy, magnitude;
+    double bandwith = SamplesPerSec / frameSize;
     trackDouble bark;
 
     bark = (double *)calloc(BANDS, sizeof(double));
@@ -47,7 +48,6 @@ namespace FreqTecnics
 
     for (int i = 0; i < BANDS; i++)
     {
-      bark[i] = bark[i];
       if (bark[i] > max)
           max = bark[i];
       if (bark[i] < min)

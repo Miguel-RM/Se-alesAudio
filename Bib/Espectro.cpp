@@ -3,6 +3,7 @@
 #include "tracks.cpp"
 #include "TimeTecnics.cpp"
 #include "FreqTecnics.cpp"
+#include "Homomorphic.cpp"
 #include <fstream>
 
 #ifndef SPECTRUM_CPP
@@ -12,6 +13,7 @@ using namespace ::Fourier;
 using namespace ::Tracks;
 using namespace ::TimeTecnics;
 using namespace ::FreqTecnics;
+using namespace ::Homomorphic;
 
 class Spectrum
 {
@@ -27,15 +29,17 @@ private:
     int marcos;
     int filtros;
     int slice;
+    bool frontMFCC;
     string name;
     matrizDouble spect;
 
 public:
-    Spectrum(Wave &audio, int channel);
+    Spectrum(Wave &audio, string label, int channel, bool mfcc);
     Spectrum(string name);
     Spectrum();
     matrizDouble getSpect();
     int getMarcos();
+    bool getFornt();
     int getFrame();
     string getName();
     void clear();
@@ -43,13 +47,18 @@ public:
     void load(string name);
     void firstTrack(int i);
     void createPPM(string Nombre);
-    void newSpectrum(Wave &audio, int channel);
+    void newSpectrum(Wave &audio, int channel, bool mfcc);
     void createPPM();
     void divideTrack(trackInt data, long samples, int SamplesPerSec);
     double DTW(Spectrum &B);
     double DTWSandC(Spectrum &B);
     ~Spectrum();
 };
+
+bool Spectrum::getFornt()
+{
+    return frontMFCC;
+}
 
 string Spectrum::getName()
 {
@@ -69,6 +78,7 @@ Spectrum::Spectrum()
     min = 9e16;
     marcos = 0;
     filtros = 0;
+    frontMFCC = false;
 }
 
 Spectrum::Spectrum(string name)
@@ -79,6 +89,7 @@ Spectrum::Spectrum(string name)
 void Spectrum::load(string Name)
 {
     FILE *spectre;
+    int frontEnd;
     char cadena[100];
     char c;
     Name = PATHDICT + Name + ".sp";
@@ -96,7 +107,12 @@ void Spectrum::load(string Name)
     name = cadena;
     fscanf(spectre, "%d,%d,\n", &bytepersample, &frameSize);
     fscanf(spectre, "%lf,%lf,%d,\n", &max, &min, &slice);
-    fscanf(spectre, "%d,%d\n", &marcos,&filtros);
+    fscanf(spectre, "%d,%d,%d \n", &marcos, &filtros, &frontEnd);
+
+    if (1 == frontEnd)
+        frontMFCC = true;
+    else
+        frontMFCC = false;
 
     spect = new double *[marcos];
     for (int i = 0; i < marcos; i++)
@@ -128,7 +144,8 @@ void Spectrum::save()
     file << max << ",";
     file << min << ",";
     file << slice << "," << endl;
-    file << marcos << "," << filtros << "," << endl;
+    file << marcos << "," << filtros << ",";
+    file << (frontMFCC ? 1 : 0) << endl;
 
     for (int i = 0; i < marcos; i++)
     {
@@ -149,6 +166,7 @@ void Spectrum::clear()
     min = 9e16;
     marcos = 0;
     filtros = 0;
+    frontMFCC = false;
 }
 
 int Spectrum::getFrame()
@@ -171,10 +189,11 @@ void Spectrum::firstTrack(int i)
     printTrack(spect[i], filtros);
 }
 
-void Spectrum::newSpectrum(Wave &audio, int channel)
+void Spectrum::newSpectrum(Wave &audio, int channel, bool mfcc)
 {
     clear();
     int factor = 128;
+    frontMFCC = mfcc;
     bytepersample = audio.BytePorMu;
     frameSize = audio.getSamplesPerSec() * PERIOD;
     slice = audio.getSamplesPerSec() * SLICE;
@@ -192,9 +211,10 @@ void Spectrum::newSpectrum(Wave &audio, int channel)
     name = audio.nameWave;
 }
 
-Spectrum::Spectrum(Wave &audio, int channel)
+Spectrum::Spectrum(Wave &audio, string label, int channel, bool mfcc)
 {
     int factor = 128;
+    frontMFCC = mfcc;
     bytepersample = audio.BytePorMu;
     frameSize = audio.getSamplesPerSec() * PERIOD;
     slice = audio.getSamplesPerSec() * SLICE;
@@ -209,7 +229,7 @@ Spectrum::Spectrum(Wave &audio, int channel)
     }
     frameSize = factor;
     divideTrack(audio.data[channel], audio.Samples, audio.getSamplesPerSec());
-    name = audio.nameWave;
+    name = label;
 }
 
 Spectrum::~Spectrum()
@@ -241,13 +261,18 @@ void Spectrum::divideTrack(trackInt data, long Samples, int SamplesPerSec)
     max = -10;
     min = 9e16;
     marcos = (int)((length - frameSize) / slice);
-    filtros = BANDS;
     spect = new trackDouble[marcos];
     windows = Hamming(frameSize);
 
     position = start;
 
     m = 0;
+
+    if (frontMFCC)
+        filtros = MCOEF;
+    else
+        filtros = BANDS;
+
     //cout << "start: " << start << endl;
     //cout << "end: " << end << endl;
     while (m < marcos)
@@ -262,10 +287,16 @@ void Spectrum::divideTrack(trackInt data, long Samples, int SamplesPerSec)
 
         TRFW(marco, frameSize, FFTW_FORWARD);
 
-        // se obtiene la energia en las banadas de bark
-        bandwith = SamplesPerSec / frameSize;
-        filterBank = bandsBark(frameSize, marco, bandwith, max, min);
-        
+        if (frontMFCC)
+        {
+            // se obtienen los coeficientes MFCC
+            filterBank = MFCC(frameSize, marco, SamplesPerSec, max, min);
+        }
+        else
+        {
+            // se obtiene la energia en las banadas de bark
+            filterBank = bandsBark(frameSize, marco, SamplesPerSec, max, min);
+        }
         delete[] marco;
 
         spect[m] = filterBank;
@@ -273,15 +304,6 @@ void Spectrum::divideTrack(trackInt data, long Samples, int SamplesPerSec)
         m++;
     }
 
-    /*for (int i = 0; i < marcos; i++)
-    {
-        for (int j = 0; j < filtros; j++)
-        {
-            spect[i][j] /= max;
-        }
-        
-    }*/
-    
     //cout << "Max: " << max << endl;
     //cout << "Min: " << min << endl;
     delete[] windows;
@@ -295,7 +317,7 @@ double Spectrum::DTWSandC(Spectrum &B)
     double m = (double)(R - 1) / (double)(C - 1);
     double distance;
     matrizDouble costMatrix;
-    int n = ceil(R / 4);
+    int n = ceil(R / 4.0);
 
     /* Se crea la matriz de costos*/
     costMatrix = new trackDouble[R];
@@ -329,7 +351,7 @@ double Spectrum::DTWSandC(Spectrum &B)
                         less = less > a ? a : less;
                     }
 
-                    if (n >= abs((r-1) - pr))
+                    if (n >= abs((r - 1) - pr))
                     {
                         a = costMatrix[r - 1][c] + distI;
                         less = less > a ? a : less;
@@ -358,7 +380,6 @@ double Spectrum::DTW(Spectrum &B)
     double less, n, m, distI, distII;
     matrizDouble costMatrix;
     int N = marcos, M = B.marcos;
-    int r = 10;
 
     costMatrix = new trackDouble[N];
     for (int i = 0; i < N; i++)
@@ -369,23 +390,17 @@ double Spectrum::DTW(Spectrum &B)
     costMatrix[0][0] = CosDistance(spect[0], B.spect[0], filtros);
     for (int i = 1; i < M; i++)
     {
-        if (i < r)
             costMatrix[0][i] = CosDistance(spect[0], B.spect[i], filtros) + costMatrix[0][i - 1];
-        //else break;
     }
     for (int i = 1; i < N; i++)
     {
-        //if(i<r)
         costMatrix[i][0] = CosDistance(spect[i], B.spect[0], filtros) + costMatrix[i - 1][0];
-        //else break;
     }
 
     for (int i = 1; i < M; i++)
     {
         for (int j = 1; j < N; j++)
         {
-
-            //if(abs(i-j)<r){
             distI = CosDistance(spect[j], B.spect[i], filtros);
             less = costMatrix[j - 1][i - 1] + 2 * distI;
             distII = costMatrix[j][i - 1] + distI;
@@ -402,7 +417,6 @@ double Spectrum::DTW(Spectrum &B)
             }
 
             costMatrix[j][i] = less;
-            //}
         }
     }
 

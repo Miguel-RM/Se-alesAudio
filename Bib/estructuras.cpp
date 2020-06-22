@@ -9,8 +9,9 @@ namespace audio{
     #define PERIOD 30e-3
     #define SLICE 10e-3
     #define MTRASH 8
-    #define FILTERS 15
-    #define BANDS 16
+    #define FILTERS 4
+    #define MCOEF 8
+    #define BANDS 20
     #define PATH "AudiosIn/"
     #define PATHDICT "dictionary/"
     
@@ -27,6 +28,12 @@ namespace audio{
         int v; // valor de la variable 
         int f; // frecuencoa de la variable
     } hist;
+    typedef struct 
+    {
+        string label; // Etiqueta 
+        int votes; // votos
+        double dist; // distancia menor
+    } NN;
     typedef vector<hist> Histogram;
 
     typedef struct

@@ -30,7 +30,7 @@ namespace Homomorphic
         trackDouble fc;
         double with;
         fc = (double *)calloc(FILTERS + 2, sizeof(double));
-        with = hz2Mel(samplePerSec) / (FILTERS + 1);
+        with = hz2Mel(samplePerSec/2) / (FILTERS + 1);
 
         for (int i = 0; i < FILTERS + 2; i++)
         {
@@ -56,17 +56,16 @@ namespace Homomorphic
         }
 
         return 0.0;
-
     }
 
-    trackDouble cosTrans(trackDouble filters, int coef)
+    trackDouble cosTrans(trackDouble filters)
     {
 
         trackDouble mfcc;
         double aux;
 
-        mfcc = new double[coef];
-        for (int i = 0; i < coef; i++)
+        mfcc = new double[MCOEF];
+        for (int i = 0; i < MCOEF; i++)
         {
             aux = 0.0;
             for (int j = 0; j < FILTERS; j++)
@@ -79,21 +78,22 @@ namespace Homomorphic
         return mfcc;
     }
 
-    trackDouble MFCC(trackComplex marco, int framesize, int samplesPerSeg)
+    trackDouble MFCC(int framesize, trackComplex marco, int samplesPerSeg, double &max, double &min)
     {
 
         trackDouble fc;
         double bandWith = samplesPerSeg / framesize;
+        double h;
         trackDouble filters = (double *)calloc(FILTERS, sizeof(double));
         trackDouble mfcc;
-        int coef = 8;
 
-        fc = createFc(samplesPerSeg);
+        fc = createFc(samplesPerSeg); // se calculan las frecuencias centrales
         for (int i = 0; i < framesize / 2; i++)
         {
             for (int m = 0; m < FILTERS; m++)
             {
-                filters[m] += H(bandWith * i, fc, m + 1) * abs(marco[i]);
+                h = H(bandWith * i, fc, m + 1);
+                filters[m] += h * abs(marco[i]);
             }
         }
 
@@ -101,8 +101,18 @@ namespace Homomorphic
         {
             filters[i] = log10(filters[i]);
         }
+
+        mfcc = cosTrans(filters);
         
-        mfcc = cosTrans(filters, coef);
+        //cout << "MFCC: ";
+        for (int i = 0; i < MCOEF; i++)
+        {
+            //cout << mfcc[i] <<  " ";
+            if (mfcc[i] > max)
+                max = mfcc[i];
+            if (mfcc[i] < min)
+                min = mfcc[i];
+        }//cout << endl;
 
         delete[] fc;
         delete[] filters;
