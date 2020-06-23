@@ -267,10 +267,10 @@ int forwardSearch(double Emax, long lengthT, trackInt track, int framesize, int 
                 NoiseE = Emax / pow(10, (SNR-3)/10);
             }else if(SNR < 30)
             {
-                NoiseE = Emax / pow(10, (SNR-5)/10);
+                NoiseE = Emax / pow(10, (SNR-7)/10);
             }else
             {
-                NoiseE = Emax / pow(10, (SNR-10)/10);
+                NoiseE = Emax / pow(10, 25/10);
             }
             //cout << "NoisEFor " << NoiseE << endl;
             count ++;
@@ -331,7 +331,7 @@ int backwardSearch(double Emax, long lengthT, trackInt track, int framesize, int
                 NoiseE = Emax / pow(10, (SNR-5)/10);
             }else
             {
-                NoiseE = Emax / pow(10, (SNR-10)/10);
+                NoiseE = Emax / pow(10, 25/10);
             }
             //cout << "NoisEBac " << NoiseE << endl;
             //cout << "SNR " << SNR << endl;

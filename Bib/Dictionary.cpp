@@ -64,16 +64,15 @@ void Dictionary::KNN(Spectrum *A, int k)
         {
             aux.dist=d;
             aux.label = dictionary[i]->getName();
-            aux.votes = 0;
+            aux.votes = 1;
             MaxDist = insertN(list, aux, k);
         }
     }
-
+    
     // votación de los KNN
 
     for (int i = 0; i < list.size(); i++)
     {
-        list[i].votes++;
         for (int j = i+1; j < list.size(); j++)
         {
             if(0 == list[i].label.compare(list[j].label))
@@ -88,6 +87,8 @@ void Dictionary::KNN(Spectrum *A, int k)
 
     for (int i = 0; i < list.size(); i++)
     {
+        //cout << "Palabra: "<< list[i].label << endl;
+        //cout << "Votos: " << list[i].votes << endl;
         if(MaxV < list[i].votes)
         {
             MaxV = list[i].votes;
