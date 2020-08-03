@@ -17,6 +17,7 @@ namespace audio{
     
     typedef vector<double> trackFloat;
     typedef double* trackDouble;
+    typedef unsigned char* index;
     typedef complex<double>* trackComplex;
     typedef vector<trackFloat> MatrizDouble;
     typedef double** matrizDouble;

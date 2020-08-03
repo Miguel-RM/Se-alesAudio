@@ -11,6 +11,44 @@ using namespace::Tracks;
 namespace Filters
 {
 
+    /*************************************************************************************
+     *                                  Filtros IIR                                      *
+     * **********************************************************************************/
+
+    double Min(double A, double B)
+    {
+        if(A<B)
+            return A;
+        else
+            return B;
+    }
+
+    void FiltrosButterworth(double omega1, double omega2, double omegaL, double omegaU, double k1, double k2)
+    {
+        double o1 = 2*PI * omega1;
+        double o2 = 2*PI * omega2;
+        double oL = 2*PI * omegaL;
+        double oU = 2*PI * omegaU;
+        double A, B, oR, n;
+
+        A = (o1*o1 + oL*oU) / (o1*(oL-oU));
+        cout << "A: "<<A << " ";
+        B = (o2*o2 + oL*oU) / (o2*(oU-oL));
+        cout << "B: "<<B << " ";
+
+        oR = Min(abs(A), abs(B));
+        cout << "oR: "<<oR << " ";
+        n = log10( (pow(10, (-k1/10))-1) /(pow(10, (-k1/10))-1) ) / (2*log10(1/oR));
+        cout << "n: "<<n << " " << endl;
+
+
+    }
+
+
+    /*************************************************************************************
+     *                                  Filtros FIR                                      *
+     * **********************************************************************************/
+
     int oneRaisedK(int k)
     {
         if(0 == k%2)
@@ -28,12 +66,13 @@ namespace Filters
 
     }
 
-    trackDouble coefFIR(Hr &dataHr, int M)
+    trackFloat coefFIR(Hr &dataHr, int M)
     {
         int length = (dataHr[3].k - dataHr[0].k)+1, U, k, j;
         double sum, cons = PI / M;
         trackDouble G = new double[length];
         trackDouble h;
+        trackFloat hf;
 
         if(par(M))
             U = M/2 -1;
@@ -62,11 +101,21 @@ namespace Filters
                 sum = G[0] + 2*sum;
             else 
                 sum *= 2;
-            h[n] = sum / M;
-            
+            h[n] = sum / M;   
         }
+
+        for (int i = 0; i < M/2; i++)
+        {
+            hf.push_back(h[i]);   
+        }
+
+        for (int i = 0; i < M/2; i++)
+        {
+            hf.push_back(h[M/2-i-1]);   
+        }
+        delete[] h;
         
-        return h;
+        return hf;
     }
 
     /*************************************************************************************
@@ -82,11 +131,11 @@ namespace Filters
             auxb += b[i]*track[n - i];
         }
 
-        for (int i = 1; i <= a.size(); i++)
+        for (int i = 1; i < a.size(); i++)
         {
-            if(outputs > 0)
+            if(outputs > a.size()-1)
             {
-                auxa += a[i]*y[n - i];
+                auxa += a[i-1]*y[n - i];
                 outputs--;
             }
         }
@@ -105,7 +154,7 @@ namespace Filters
         int cont=0;
         for (int n = 0; n < lengthT; n++)
         {
-            if(n<b.size())
+            if(n<=b.size())
             {
                 y[n] = (double)track[n];
             }else
@@ -121,21 +170,24 @@ namespace Filters
      * **********************************************************************************/
 
 
-    trackDouble Mixer(long lengthT, trackInt track, MatrizDouble bankA, MatrizDouble bankB, trackInt lengths, trackDouble weighing)
+    trackDouble Mixer(long lengthT, trackInt track, MatrizDouble bankA, MatrizDouble bankB, trackDouble weighing)
     {
 
-        trackDouble mix = new double[lengthT];
+        trackDouble mix = (double *)calloc(lengthT, sizeof(double));
         trackDouble y   = new double[lengthT];
+        double fac = 1;
  
         for (int i = 0; i < bankB.size(); i++)
         {
+            cout <<endl << "\t Aplicando Filtro " << i+1 << endl;
             applyFilter(lengthT, bankA[i], bankB[i], track, y);
             for (int n = 0; n < lengthT; n++)
             {
-                mix[n] += weighing[i] * y[n];
+                mix[n] += weighing[i] * fac * y[n];
             }
         }
-
+        delete[] y;
+        
         return mix;
     }
     
