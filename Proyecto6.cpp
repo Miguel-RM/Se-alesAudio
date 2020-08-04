@@ -11,7 +11,7 @@ using namespace ::Wavelet;
 int main()
 {
     Wave audio("derecha_6");
-    trackDouble senal = new double[10];
+    trackDouble senal;
     trackDouble low = new double[2];
     trackDouble high = new double[2];
     trackDouble lowI = new double[2];
@@ -19,11 +19,14 @@ int main()
     matrizDouble prueba = new double*[2];
     index ind;
     int lengthInd;
+    int lengthT;
+    int nivel = 1;
 
     double c = sqrt(2);
-    unsigned char pru = 0;
-    unsigned char p = 128;
-    double cielo;
+
+/**********************************************************************
+ *   En esta sección se realiza la creación de los filtros            *
+ * *******************************************************************/
 
     low[0] = 1.0/c; low[1] = 1.0/c;
     high[0] = 1.0 / c; high[1] = -1.0/c;
@@ -32,18 +35,21 @@ int main()
     lowI[0] = c/2; lowI[1] = c/2;
     highI[0] = c/2; highI[1] = -c/2;
 
+/**********************************************************************
+ *   En esta sección se realiza la compresión del audio               *
+ * *******************************************************************/
 
-    /*senal[0]= 3; senal[1]= 7; senal[2]= 6; senal[3]= 5; senal[4]= 7;
-    senal[5]= 8; senal[6]= 10; senal[7]= 9; senal[8]= 9; senal[9]= 10;*/
+/*
+    senal = audio.getTrackD(0);
+    lengthT = audio.getSamples();
+    cout << "Muestras: " << lengthT << endl;
+    transDiscWav(senal, lengthT, high, low, 2, nivel);
 
-    
-    transDiscWav(senal, 10, high, low, 2, 3);
-
-    trimTrack(senal, 10, 0.3, 3);
+    trimTrack(senal, lengthT, 0.0, nivel);
 
     prueba[0] = senal;
 
-    ind = createIndex(prueba, 10, lengthInd, 1);
+    ind = createIndex(prueba, lengthT, lengthInd, 1);
 
     cout << "Indice: ";
     for (int i = 0; i < lengthInd; i++)
@@ -51,21 +57,28 @@ int main()
         cout << (int)ind[i] << " ";
     }cout << endl;
 
+    audio.newTrack(lengthT, senal, 0);
     // Guardar el archivo comprimido
-    //saveWaveBin(audio, ind, lengthInd, senal, 10, "comprimido");
+    saveWaveBin(audio, ind, lengthInd, "comprimido2");
     
+    delete[] senal;
+//*/
+
+/**********************************************************************
+ *   En esta sección se realiza la descompresión del audio            *
+ * *******************************************************************/
 
     // Leer el archivo guardado
-    
-    //readWaveBin(audio, "comprimido", senal, 10);
-    //audio.printHeader();
-    transDiscWavInv(senal, 10, highI, lowI, 2, 3);
 
-    cout << "señal: ";
-    for (int i = 0; i < 10; i++)
-    {
-        cout << senal[i] << " ";
-    }cout << endl;
+    readWaveBin(audio, "comprimido2");
+    senal = audio.getTrackD(0);
+    lengthT = audio.getSamples();
+    audio.printHeader();
+    transDiscWavInv(senal, lengthT, highI, lowI, 2, nivel);
+    audio.newTrack(lengthT, senal, 0);
+
+    audio.writeWave("Descom");
+//*/
 
     return 0;
 }

@@ -59,8 +59,11 @@ index createIndex(matrizDouble tracks, int lengthT, int &lengthIndex, int numTra
     int chann=0;
 
     lengthIndex = (int)ceil((numTracks*lengthT) / 8.0);
+    cout << "LEnIndx " << lengthIndex << endl;
+    cout << "limit "<< limit << endl;
+    cout << "len "<< 576*8.0 << endl;
 
-    ind = new unsigned char[lengthIndex];
+    ind = (unsigned char *)calloc(lengthIndex, sizeof(unsigned char));
 
     for (int i = 0, j = 0; i < limit; i++, k++)
     {
@@ -69,14 +72,15 @@ index createIndex(matrizDouble tracks, int lengthT, int &lengthIndex, int numTra
             i = 0;
             chann++;
         }
-        if(tracks[chann][i] != 0)
+        if(abs(tracks[chann][i]) > 0.0)
             ind[l] = ind[l] | p;
         p >>= 1;
-        if(8 == k){
+        if(9 == k){
             k = 1;
             l++;
             p = 128;
         }
+        //cout << "i: " << i << " j " << " k " << k << " l "<< l << "P: " << (int)p<< endl;
     }
     return ind;
 }
@@ -100,7 +104,7 @@ void updateInv(trackDouble &track, trackDouble &wave, int mitad, int nivel)
 trackDouble transDiscWavInv(trackDouble &track, int lengthT, trackDouble fHigh, trackDouble fLow, int lengthF, int nivel)
 {
     int mitad;
-    trackDouble wave = new double[lengthT];
+    trackDouble wave = (double *)calloc(lengthT, sizeof(double));
 
     for (int i = nivel; i > 0 ; i--)
     {
@@ -133,7 +137,7 @@ void update(trackDouble &track, trackDouble &wave, int &lengthW, int &mitad, int
         
     }
     lengthW = mitad;
-    wave = new double[lengthW];
+    wave = (double *)calloc(lengthW, sizeof(double));
     if(mitad%2 != 0){
         wave[mitad-1] = track[mitad-1];
     }
@@ -147,7 +151,7 @@ void transDiscWav(trackDouble &track, int lengthT, trackDouble fHigh, trackDoubl
     int mitad = lengthT >> 1;
     int lengthW;
     double low, high;
-    trackDouble wave = new double[lengthT];
+    trackDouble wave = (double *)calloc(lengthT, sizeof(double));
 
     for (int i = 0; i < nivel; i++)
     {

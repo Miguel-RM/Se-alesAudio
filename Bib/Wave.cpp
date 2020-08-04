@@ -52,6 +52,7 @@ public:
     void newTrack(int length, trackComplex spectre, int channel);
     friend void readWaveBin(Wave &audio, string name);
     trackComplex int2Complex(int channel);
+    trackDouble getTrackD(int channel);
     trackInt getTrack(int channel);
     void printTrack(int channel);
     void loadWave(string Name);
@@ -66,6 +67,18 @@ public:
     ~Wave();
     Wave();
 };
+
+trackDouble Wave::getTrackD(int channel)
+{
+    trackDouble trackD;
+    trackD = new double[Samples];
+
+    for (int i = 0; i < Samples; i++)
+    {
+        trackD[i] = data[channel][i];
+    }
+    return trackD;
+}
 
 void saveWaveBin(Wave &audio, index ind, int lengthInx, string name)
 {
@@ -532,7 +545,7 @@ void Wave::newTrack(int length, trackDouble chanTrack, int channel)
 
     for (int j = 0; j < length; j++)
     {
-        data[channel][j] = (int)chanTrack[j];
+        data[channel][j] = (int) ceil(chanTrack[j]);
     }
 }
 
