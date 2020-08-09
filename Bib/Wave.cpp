@@ -146,9 +146,10 @@ void saveWaveBin(Wave &audio, index ind, int lengthInx, string name)
             auxi = (short)audio.data[chann][i];
             fwrite(&auxi, audio.BytePorMu, 1, pFile);
         }
+        p >>= 1;
         if (8 == k)
         {
-            k = 1;
+            k = 0;
             p = 128;
             l++;
         }
@@ -238,14 +239,15 @@ void readWaveBin(Wave &audio, string Name)
             fread(&sampleLeft, audio.BytePorMu, 1, pFile);
             track[i] = (short)sampleLeft;
         }
-
+        p >>=1;
         if (8 == k)
         {
-            k = 1;
+            k = 0;
             p = 128;
             l++;
         }
     }
+
     if(2 == audio.wChannels)
         audio.data[1] = track;
     else 

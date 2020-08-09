@@ -39,13 +39,13 @@ int main()
  *   En esta sección se realiza la compresión del audio               *
  * *******************************************************************/
 
-/*
+///*
     senal = audio.getTrackD(0);
     lengthT = audio.getSamples();
     cout << "Muestras: " << lengthT << endl;
     transDiscWav(senal, lengthT, high, low, 2, nivel);
 
-    trimTrack(senal, lengthT, 0.0, nivel);
+    trimTrack(senal, lengthT, 1.0, nivel);
 
     prueba[0] = senal;
 
@@ -67,7 +67,7 @@ int main()
 /**********************************************************************
  *   En esta sección se realiza la descompresión del audio            *
  * *******************************************************************/
-
+/*
     // Leer el archivo guardado
 
     readWaveBin(audio, "comprimido2");

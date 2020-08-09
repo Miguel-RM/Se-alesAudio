@@ -75,8 +75,8 @@ index createIndex(matrizDouble tracks, int lengthT, int &lengthIndex, int numTra
         if(abs(tracks[chann][i]) > 0.0)
             ind[l] = ind[l] | p;
         p >>= 1;
-        if(9 == k){
-            k = 1;
+        if(8 == k){
+            k = 0;
             l++;
             p = 128;
         }
