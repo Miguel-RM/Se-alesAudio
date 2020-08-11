@@ -158,24 +158,42 @@ namespace TimeTecnics
         }
     }
 
-    void vocNovoc(bool &vnv, double &tono, double &G, int n, int marcsize, trackDouble track, trackDouble &R, double fm, int lpcC)
+    trackDouble getMarco(trackDouble track, trackDouble windows, int marcSize, int i)
+    {
+        int end, start;
+        trackDouble marco;
+
+        start = i*80;
+        end = start + marcSize;
+        marco = new double[marcSize];
+
+        for (int i = start, j=0; i < end; i++,j++)
+        {
+            marco[j] = track[i]*windows[j];
+        }
+
+        return marco;
+    }
+
+    void vocNovoc(bool &vnv, double &tono, double &G, int n, int marcsize, trackDouble track, trackDouble &R, trackDouble windows, double fm, int lpcC)
     {
         int IPOS, zc;
         double IPK;
-        trackDouble aC;
-
+        trackDouble aC, marco;
+        
+        marco = getMarco(track, windows, marcsize, n);
         R = new double[lpcC+1];
-        zc = ZeroCrossing(n, track, marcsize);
-        aC = autoCorrMod(n, marcsize, track);
+        zc = ZeroCrossing(0, marco, marcsize);
+        aC = autoCorrMod(0, marcsize, marco);
         searchPeak(aC, marcsize, IPOS, IPK);
-        G = rMS(n*marcsize, track, marcsize);
+        G = rMS(n*80, track, marcsize);
 
-        //cout << "ZC: "<<zc << endl;
-        //cout << "IPOS: "<<IPOS << endl;
-        //cout << "IPK: "<< IPK << " AC "<<aC[0]* 0.2<<endl;
+        cout << "ZC: "<<zc << endl;
+        cout << "IPOS: "<<IPOS << endl;
+        cout << "IPK: "<< IPK << " AC "<<aC[0]* 0.1<<endl;
         
         //(-7.8e-4*IPOS+0.4)
-        if (IPK < aC[0] * 0.1 || IPOS < 9 || zc > 23)
+        if (IPOS < 9 || zc > 100)
         {
             vnv = false;
             tono = 0;
@@ -350,7 +368,6 @@ namespace TimeTecnics
                 s += lpc[k-1]*S[n-k];
             }
             S[n] = s + G*U[n];
-            
         }
         return S;
     }
