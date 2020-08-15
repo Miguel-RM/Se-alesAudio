@@ -16,18 +16,18 @@ int main()
     trackDouble weight;
 
 
-    //bancoFIR(bankA, bankB);
-    bancoIIR(bankA, bankB);
+    bancoFIR(bankA, bankB);
+    //bancoIIR(bankA, bankB);
     weight = new double[5];
-    weight[0]= 1.0;
-    weight[1]= 1.0;
-    weight[2]= 1.0;
-    weight[3]= 1.0;
-    weight[4]= 1;
+    weight[0]= 0.1;
+    weight[1]= 0.2;
+    weight[2]= 0.0;
+    weight[3]= 0.0;
+    weight[4]= 0.0;
 
 
     cout << "leyendo archivo: meg" << ".wav"<<endl;
-    Wave audio("meg"); 
+    Wave audio("Monst"); 
     int lengthT = audio.getSamples();
     trackInt channel0, channel1;
     trackDouble y0 = new double[lengthT];
@@ -39,10 +39,6 @@ int main()
     cout << "Mezclando ..." <<endl;
     cout << "   Canal 1" <<endl;
     y0 = Mixer(lengthT, channel0, bankA, bankB, weight);
-    for (int i = 0; i < lengthT; i++)
-    {
-        cout << y0[i] << " ";
-    }cout << endl;
     
     cout << "   Canal 2" <<endl;
     y1 = Mixer(lengthT, channel1, bankA, bankB, weight);
@@ -65,47 +61,6 @@ void bancoIIR(MatrizDouble &bankA, MatrizDouble &bankB)
 {
     trackFloat b;
     trackFloat a;
-
-    /* Filtro I 
-    b = {1.59371e18, 4.33381e16, 8.58386e14, 1.16022e13,
-     1.26943e11, 1.1005e9,  7.98271e6, 47661.2, 240.397,
-     1.00606, 0.00355687, 0.0000103506, 2.52026e-8, 4.86222e-11,
-     7.59341e-14, 8.0925e-17, 6.28176e-20};
-    a = {0, 0, 0, 0, 0, 0, 0, 1};
-    bankB.push_back(b); b.clear();
-    bankA.push_back(a);a.clear();*/
-    
-    // Filtro II 
-    b =  {0.9899, -9.909, 44.63, -119.1, 208.7, -250.7, 209.1, -119.6, 44.91, -9.99, 1};
-    a =  {- 9.635e-15, 0, 4.818e-14, 0, -9.635e-14, 0, 9.635e-14, 0, -4.818e-14, 0,  9.635e-15};
-    bankB.push_back(b); b.clear();
-    bankA.push_back(a);a.clear();
-    // Filtro III 
-   /* b =  {1.07868e26, 3.07996e23, 4.83432e20, 5.16542e17,
-     4.08208e14, 2.46165e11,  1.14115e8, 40266.2, 10.5913,
-     0.00203991, 2.92877e-7, 3.20064e-11, 2.68882e-15, 1.72368e-19,
-     8.17253e-24, 2.63777e-28, 4.68012e-33};
-    a =  {0, 0, 0, 0, 0, 0, 0, 1};
-    bankB.push_back(b); b.clear();
-    bankA.push_back(a);a.clear();
-    // Filtro IV 
-    b =  {1.59371e34, 4.33381e30, 8.58386e26, 1.16022e23,
-     1.26943e19, 1.1005e15,  7.98271e10, 4.76612e6, 240.397,
-     0.0100606, 3.55687e-7, 1.03506e-11, 2.52026e-16, 4.86222e-21,
-     7.59341e-26, 8.0925e-31, 6.28176e-36};
-    a =  {0, 0, 0, 0, 0, 0, 0, 1};
-    bankB.push_back(b); b.clear();
-    bankA.push_back(a);a.clear();
-    // Filtro V 
-    b =  {1.7523e38, 1.48908e34, 1.0026e30, 4.49468e25,
-     1.68331e21, 4.95781e16,  1.2477e12, 2.58225e7, 460.181,
-     0.00681345, 8.6866e-8, 9.10746e-13, 8.15908e-18, 5.74836e-23,
-     3.3833e-28, 1.32587e-33, 4.11681e-39};
-    a =  {0, 0, 0, 0, 0, 0, 0, 1};
-    bankB.push_back(b); b.clear();
-    bankA.push_back(a);a.clear();*/
-    
-
 }
 
 
